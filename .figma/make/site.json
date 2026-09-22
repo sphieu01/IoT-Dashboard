@@ -1,0 +1,10 @@
+{
+  "description": "Connect and manage IoT devices seamlessly to monitor data and automate tasks, enhancing efficiency for businesses and tech enthusiasts.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
