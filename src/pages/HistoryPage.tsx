@@ -111,17 +111,7 @@ export default function HistoryPage({ logs }: HistoryPageProps) {
         </div>
       </div>
 
-      {/* Protocol Legend */}
-      <div className="flex flex-wrap items-center gap-3 text-xs font-mono text-[#64748b] bg-[#0f1720] border border-[#1e2d42] px-4 py-2.5 rounded-xl">
-        <span className="flex items-center gap-1.5">
-          <span className="text-[#e2e8f0] font-semibold">Action:</span> Command emitted by client
-        </span>
-        <span>•</span>
-        <span className="flex items-center gap-1.5">
-          <span className="text-[#e2e8f0] font-semibold">Status:</span> Hardware ACK response
-        </span>
 
-      </div>
 
       {/* History Log Table */}
       <div className="bg-[#0f1720] border border-[#1e2d42] rounded-2xl overflow-hidden shadow-xl">
@@ -131,7 +121,7 @@ export default function HistoryPage({ logs }: HistoryPageProps) {
               <tr className="bg-[#121c29]">
                 <th className={thCls}>ID</th>
                 <th className={thCls}>Device</th>
-                <th className={thCls}>Command (Action)</th>
+                <th className={thCls}>Action</th>
                 <th className={thCls}>Device Status</th>
                 <th className={thCls}>Timestamp</th>
               </tr>

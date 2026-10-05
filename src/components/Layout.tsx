@@ -1,35 +1,41 @@
 import React, { ReactNode } from 'react'
-import { PageTab } from '../types'
-import { PAGE_TITLES } from '../services/mockData'
+import { Link, useLocation } from 'react-router-dom'
 
 interface NavItemProps {
   label: string
-  active: boolean // người dùng có đang ở trang này không. 
-  onClick: () => void
+  to: string
+  active: boolean
   icon?: ReactNode
 }
 
-export function NavItem({ label, active, onClick }: NavItemProps) {
+export function NavItem({ label, to, active, icon }: NavItemProps) {
   return (
-    <button
-      onClick={onClick}
+    <Link
+      to={to}
       className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer flex items-center gap-3 ${active
         ? 'bg-[#00d4a8]/15 text-[#00d4a8] font-semibold border-l-4 border-[#00d4a8]'
         : 'text-[#94a3b8] hover:text-white hover:bg-[#1e2d42]/60'
         }`}
     >
+      {icon && <span>{icon}</span>}
       <span>{label}</span>
-    </button>
+    </Link>
   )
 }
 
 interface LayoutProps {
-  currentPage: PageTab
-  onSelectPage: (page: PageTab) => void
   children: ReactNode
 }
 
-export default function Layout({ currentPage, onSelectPage, children }: LayoutProps) { // children =  tất cả những gì được nhét vào giữa thẻ <Layout> và </Layout> lúc sử dụng". ở đây là  <DashboardPage />
+export default function Layout({ children }: LayoutProps) { // children =  tất cả những gì được nhét vào giữa thẻ <Layout> và </Layout> lúc sử dụng". ở đây là  <DashboardPage />
+  const location = useLocation()
+  const pathname = location.pathname
+
+  const isDashboard = pathname === '/' || pathname === '/dashboard'
+  const isDataSensor = pathname === '/datasensor' || pathname === '/data-sensor'
+  const isHistory = pathname === '/history'
+  const isProfile = pathname === '/profile' || pathname === '/my-profile' || pathname === '/myprofile'
+
   return (
     <div className="h-screen overflow-hidden bg-[#090d13] flex font-sans text-[#e2e8f0]">
       {/* Sidebar */}
@@ -41,23 +47,23 @@ export default function Layout({ currentPage, onSelectPage, children }: LayoutPr
         <nav className="flex flex-col gap-1.5 px-3 flex-1">
           <NavItem
             label="Dashboard"
-            active={currentPage === 'dashboard'}
-            onClick={() => onSelectPage('dashboard')}
+            to="/dashboard"
+            active={isDashboard}
           />
           <NavItem
             label="Data Sensor"
-            active={currentPage === 'data-sensor'}
-            onClick={() => onSelectPage('data-sensor')}
+            to="/datasensor"
+            active={isDataSensor}
           />
           <NavItem
             label="History"
-            active={currentPage === 'history'}
-            onClick={() => onSelectPage('history')}
+            to="/history"
+            active={isHistory}
           />
           <NavItem
             label="My Profile"
-            active={currentPage === 'my-profile'}
-            onClick={() => onSelectPage('my-profile')}
+            to="/profile"
+            active={isProfile}
           />
         </nav>
       </aside>
@@ -69,3 +75,4 @@ export default function Layout({ currentPage, onSelectPage, children }: LayoutPr
     </div>
   )
 }
+

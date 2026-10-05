@@ -20,7 +20,7 @@ const PROFILE_LINKS: ProfileLinkItem[] = [
     ),
   },
   {
-    label: 'Project Report PDF',
+    label: 'Report PDF',
     href: '#',
     bg: '#dc2626',
     icon: (

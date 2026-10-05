@@ -17,7 +17,7 @@ const SENSOR_META: Record<SensorType, { unit: string; color: string }> = {
 
 export default function DataSensorPage({ rows }: DataSensorPageProps) {
   const [sort, setSort] = useState<'newest' | 'oldest'>('newest')
-  const [searchType, setSearchType] = useState<'light' | 'humidity' | 'temp' | 'time'>('light')
+  const [searchType, setSearchType] = useState<'all' | 'light' | 'humidity' | 'temp' | 'time'>('all')
   const [query, setQuery] = useState('')
   const [committedQuery, setCommittedQuery] = useState('')
   const [page, setPage] = useState(1)
@@ -27,15 +27,21 @@ export default function DataSensorPage({ rows }: DataSensorPageProps) {
   const filtered = sorted.filter((f) => {
     // Nếu chưa nhập gì vào ô search -> không lọc, hiển thị tất cả
     if (!committedQuery.trim()) return true
-    
+
     const q = committedQuery.trim().toLowerCase()
-    
+
     // Khi có nhập text -> mới bắt đầu lọc theo loại và theo giá trị
+    if (searchType === 'all') {
+      return (
+        f.sensorType.toLowerCase().includes(q) ||
+        String(f.value).includes(q)
+      )
+    }
     if (searchType === 'light') return f.sensorType === 'Light' && String(f.value).includes(q)
     if (searchType === 'humidity') return f.sensorType === 'Humidity' && String(f.value).includes(q)
     if (searchType === 'temp') return f.sensorType === 'Temperature' && String(f.value).includes(q)
     if (searchType === 'time') return f.fullTime.toLowerCase().includes(q)
-    
+
     return true
   })
 
@@ -66,11 +72,12 @@ export default function DataSensorPage({ rows }: DataSensorPageProps) {
           <select
             value={searchType}
             onChange={(e) => {
-              setSearchType(e.target.value as 'light' | 'humidity' | 'temp' | 'time')
+              setSearchType(e.target.value as 'all' | 'light' | 'humidity' | 'temp' | 'time')
               setPage(1)
             }}
             className={selectCls}
           >
+            <option value="all">All</option>
             <option value="light">Light</option>
             <option value="humidity">Humidity</option>
             <option value="temp">Temperature</option>

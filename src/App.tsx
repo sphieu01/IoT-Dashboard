@@ -4,12 +4,12 @@ import DashboardPage from './pages/DashboardPage'
 import DataSensorPage from './pages/DataSensorPage'
 import HistoryPage from './pages/HistoryPage'
 import ProfilePage from './pages/ProfilePage'
-import { PageTab, SensorReading, HistoryLog, DeviceStates } from './types'
+import { Routes, Route, Navigate } from 'react-router-dom'
+import { SensorReading, HistoryLog, DeviceStates } from './types'
 import { INITIAL_SENSOR_ROWS, INITIAL_HISTORY_ROWS } from './services/mockData'
 import { generateLiveReading, formatFullTime, shortTimeSec, randomTemp, randomHumidity, randomLight } from './services/api'
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<PageTab>('dashboard')
 
   // Live Chart telemetry (last 15 points)
   const [chartData, setChartData] = useState(() =>
@@ -88,18 +88,28 @@ export default function App() {
   }
 
   return (
-    <Layout currentPage={currentPage} onSelectPage={setCurrentPage}>
-      {currentPage === 'dashboard' && (
-        <DashboardPage
-          chartData={chartData}
-          devices={devices}
-          pendingDevices={pendingDevices}
-          onToggle={handleToggleDevice}
+    <Layout>
+      <Routes>
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route
+          path="/dashboard"
+          element={
+            <DashboardPage
+              chartData={chartData}
+              devices={devices}
+              pendingDevices={pendingDevices}
+              onToggle={handleToggleDevice}
+            />
+          }
         />
-      )}
-      {currentPage === 'data-sensor' && <DataSensorPage rows={sensorRows} />}
-      {currentPage === 'history' && <HistoryPage logs={historyLogs} />}
-      {currentPage === 'my-profile' && <ProfilePage />}
+        <Route path="/datasensor" element={<DataSensorPage rows={sensorRows} />} />
+        <Route path="/data-sensor" element={<Navigate to="/datasensor" replace />} />
+        <Route path="/history" element={<HistoryPage logs={historyLogs} />} />
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/my-profile" element={<Navigate to="/profile" replace />} />
+        <Route path="/myprofile" element={<Navigate to="/profile" replace />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
     </Layout>
   )
 }
