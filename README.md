@@ -2,12 +2,6 @@
 
 Hệ thống giám sát dữ liệu cảm biến và điều khiển thiết bị thông minh theo thời gian thực (Real-time).
 
-- **Sinh viên:** Đào Trung Hiếu
-- **Mã sinh viên:** B23DCCN298
-- **Lớp:** D23CNPM02
-- **Trường:** Học viện Công nghệ Bưu chính Viễn thông (PTIT)
-- **Môn học:** Lập trình IoT / Hệ thống IoT
-
 ---
 
 ## 🏛️ Kiến trúc hệ thống (System Architecture)
