@@ -1,9 +1,15 @@
 node_modules/
+**/node_modules/
 dist/
+**/dist/
 build/
+**/build/
+target/
+**/target/
 .cache/
 .env*
 .vite/
+**/.vite/
 vite.config.*.timestamp-*
 *.tsbuildinfo
 *-debug.log*
@@ -11,8 +17,5 @@ logs/
 *.log
 .claude-replay.*
 .tmp-*
-target/
-**/target/
 .idea/
 *.iml
-
