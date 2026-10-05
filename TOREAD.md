@@ -26,9 +26,9 @@ TẦNG CUỐI — Điểm khởi động
 |---|---|---|
 | 4 | `src/components/common/SensorCard.tsx` | Card hiển thị 1 chỉ số cảm biến ✅ |
 | 5 | `src/components/common/Toggle.tsx` | Nút bật/tắt ✅ |
-| 6 | `src/components/common/OnOffBadge.tsx` | Badge trạng thái ON/OFF |
-| 7 | `src/components/common/Pagination.tsx` | Nút phân trang |
-| 8 | `src/components/common/index.ts` | Re-export gom các common components lại |
+| 6 | `src/components/common/OnOffBadge.tsx` | Badge trạng thái ON/OFF ✅ |
+| 7 | `src/components/common/Pagination.tsx` | Nút phân trang ✅  |
+| 8 | `src/components/common/index.ts` | Re-export gom các common components lại ✅ |
 
 ---
 
@@ -46,9 +46,9 @@ TẦNG CUỐI — Điểm khởi động
 | Thứ tự | File | Nội dung |
 |---|---|---|
 | 11 | `src/pages/DashboardPage.tsx` | Trang chính: SensorCard + LiveChart + DeviceControl ✅ |
-| 12 | `src/pages/DataSensorPage.tsx` | Bảng dữ liệu cảm biến + lọc/tìm kiếm |
-| 13 | `src/pages/HistoryPage.tsx` | Lịch sử bật/tắt thiết bị |
-| 14 | `src/pages/ProfilePage.tsx` | Trang hồ sơ người dùng |
+| 12 | `src/pages/DataSensorPage.tsx` | Bảng dữ liệu cảm biến + lọc/tìm kiếm ✅ |
+| 13 | `src/pages/HistoryPage.tsx` | Lịch sử bật/tắt thiết bị ✅ |
+| 14 | `src/pages/ProfilePage.tsx` | Trang hồ sơ người dùng ✅ |
 
 ---
 
@@ -56,8 +56,8 @@ TẦNG CUỐI — Điểm khởi động
 
 | Thứ tự | File | Nội dung |
 |---|---|---|
-| 15 | `src/components/Layout.tsx` | Sidebar + Header + vùng chứa page |
-| 16 | `src/App.tsx` | Gốc: giữ toàn bộ state, điều phối trang |
+| 15 | `src/components/Layout.tsx` | Sidebar + Header + vùng chứa page  ✅ |
+| 16 | `src/App.tsx` | Gốc: giữ toàn bộ state, điều phối trang  ✅ |
 | 17 | `src/main.tsx` | Điểm khởi động: mount `<App/>` vào `index.html` |
 
 ---

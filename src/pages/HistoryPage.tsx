@@ -89,7 +89,7 @@ export default function HistoryPage({ logs }: HistoryPageProps) {
         <div className="flex flex-1 gap-2">
           <input
             className={`${inputCls} flex-1`}
-            placeholder="Filter by time (HH:mm DD/MM/YYYY)..."
+            placeholder="HH:mm DD/MM/YYYY"
             value={timeQuery}
             onChange={(e) => setTimeQuery(e.target.value)}
             onKeyDown={(e) => {
@@ -142,9 +142,8 @@ export default function HistoryPage({ logs }: HistoryPageProps) {
                 return (
                   <tr
                     key={l.id}
-                    className={`border-b border-[#1e2d42]/50 transition-colors hover:bg-[#162031] ${
-                      i % 2 !== 0 ? 'bg-[#0a1020]/40' : ''
-                    }`}
+                    className={`border-b border-[#1e2d42]/50 transition-colors hover:bg-[#162031] ${i % 2 !== 0 ? 'bg-[#0a1020]/40' : ''
+                      }`}
                   >
                     <td className={`${tdCls} text-[#94a3b8]`}>#{l.id}</td>
                     <td className={`${tdCls} text-[#e2e8f0] font-medium`}>{l.device}</td>
@@ -152,7 +151,7 @@ export default function HistoryPage({ logs }: HistoryPageProps) {
                       <OnOffBadge value={l.action} />
                     </td>
                     <td className={tdCls}>
-                        <OnOffBadge value={l.status} />
+                      <OnOffBadge value={l.status} />
                     </td>
                     <td className={`${tdCls} text-[#00d4a8]`}>{l.fullTime}</td>
                   </tr>
@@ -169,7 +168,12 @@ export default function HistoryPage({ logs }: HistoryPageProps) {
           </table>
         </div>
 
-        <Pagination page={page} total={filtered.length} perPage={PER_PAGE} onChange={setPage} />
+        <div className="flex items-center justify-between px-6 py-2 border-t border-[#1e2d42] shrink-0">
+          <span className="text-xs font-mono text-[#64748b]">
+            Showing {pageRows.length} values of {filtered.length}
+          </span>
+          <Pagination page={page} total={filtered.length} perPage={PER_PAGE} onChange={setPage} />
+        </div>
       </div>
     </div>
   )

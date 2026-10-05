@@ -22,13 +22,13 @@ export default function DashboardPage({
   return (
     <div className="flex-1 flex flex-col gap-6 min-h-0">
       {/* Sensor Metric Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5"> {/* responsive : md = medium screen*/}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3"> {/* responsive : md = medium screen*/}
         <SensorCard
           label="Temperature"
           value={String(latest.temp)}
           unit="°C"
           icon="🌡️"
-          bg="bg-gradient-to-br from-orange-500 to-amber-600"
+          bg="bg-gradient-to-br from-orange-500 to-amber-600" // gradient: to bottom-right
         />
         <SensorCard
           label="Humidity"
@@ -47,7 +47,7 @@ export default function DashboardPage({
       </div>
 
       {/* Main Section: Chart + Device Switches */}
-      <div className="flex flex-col lg:flex-row gap-5 flex-1 min-h-[420px]"> {/* responsive : lg = large screen*/}
+      <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0"> {/* responsive : lg = large screen ; flex-1: chiếm hết chỗ còn lại*/}
         <LiveChart data={chartData} />
         <DeviceControl
           devices={devices}

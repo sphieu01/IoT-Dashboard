@@ -30,10 +30,10 @@ export default function DeviceControl({
         return (
           <div // border
             key={d.key}
-            className={`flex-1 bg-[#0f1720] border rounded-2xl p-6 flex flex-col items-center justify-center gap-4 transition-all duration-300 shadow-md ${borderColor}`}
+            className={`flex-1 bg-[#0f1720] border rounded-xl p-4 flex flex-col items-center justify-center gap-3 transition-all duration-300 shadow-md ${borderColor}`}
           >
             <div // icon
-              className={`text-5xl select-none transition-all duration-300 ${isPending
+              className={`text-4xl select-none transition-all duration-300 ${isPending
                 ? 'drop-shadow-[0_0_15px_rgba(245,158,11,0.6)] animate-pulse'
                 : isDeviceOn
                   ? 'drop-shadow-[0_0_15px_rgba(0,212,168,0.6)] scale-110'
@@ -44,7 +44,7 @@ export default function DeviceControl({
             </div>
 
             <div className="text-center">{/* text */}
-              <div className="text-base font-semibold text-[#e2e8f0]">{d.label}</div>
+              <div className="text-sm font-semibold text-[#e2e8f0]">{d.label}</div>
             </div>
 
             <Toggle // switch on/off

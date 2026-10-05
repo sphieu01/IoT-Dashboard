@@ -13,7 +13,7 @@ export default function App() {
 
   // Live Chart telemetry (last 15 points)
   const [chartData, setChartData] = useState(() =>
-    Array.from({ length: 15 }, (_, i) => {
+    Array.from({ length: 15 }, (_, i) => {  // chi la mo dau
       const d = new Date()
       d.setSeconds(d.getSeconds() - (14 - i) * 2)
       return {
@@ -44,21 +44,21 @@ export default function App() {
 
   // Toggle device handler with hardware delay & PENDING state logging
   const handleToggleDevice = (key: string) => {
-    // If device is already pending ACK, ignore extra clicks
-    if (pendingDevices[key]) return
+    // key = fan/light
+    if (pendingDevices[key]) return // If device is already pending ACK, ignore extra clicks
 
     const deviceName = key === 'light' ? 'Light' : 'Fan'
     const targetAction: 'ON' | 'OFF' = !devices[key] ? 'ON' : 'OFF'
     const currentLogId = logIdRef.current++
 
     // 1. Mark device as PENDING
-    setPendingDevices((prev) => ({ ...prev, [key]: true }))
+    setPendingDevices((prev) => ({ ...prev, [key]: true })) // bật đèn → pendingDevices = { light: true }
 
     // 2. Ghi nhận log trạng thái PENDING ngay lập tức vào DB/History
     const pendingLog: HistoryLog = {
       id: currentLogId,
       device: deviceName,
-      action: targetAction,
+      action: targetAction, // ON/OFF
       status: 'PENDING',
       fullTime: formatFullTime(new Date()),
     }

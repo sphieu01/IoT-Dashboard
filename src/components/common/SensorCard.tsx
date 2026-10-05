@@ -11,7 +11,7 @@ export interface SensorCardProps {
 export default function SensorCard({ label, value, unit, icon, bg }: SensorCardProps) {
   return (
     <div
-      className={`${bg} rounded-2xl px-6 py-5 flex items-center gap-5 flex-1 min-w-0 shadow-lg transform transition-transform hover:-translate-y-0.5`}
+      className={`${bg} rounded-2xl px-6 py-4 flex items-center gap-5 flex-1 min-w-0 shadow-lg transform transition-transform hover:-translate-y-0.5`}
     >
       <span className="text-4xl opacity-90 select-none">{icon}</span>
       <div>

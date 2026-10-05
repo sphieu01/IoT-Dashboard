@@ -4,16 +4,16 @@ import { ProfileLinkItem } from '../types'
 
 const PROFILE_LINKS: ProfileLinkItem[] = [
   {
-    label: 'GitHub Repository',
-    href: 'https://github.com',
+    label: 'GitHub Repo',
+    href: 'https://github.com/sphieu01/IoT-Dashboard',
     bg: '#24292e',
     icon: (
       <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
     ),
   },
   {
-    label: 'Figma Design File',
-    href: 'https://figma.com',
+    label: 'Figma',
+    href: 'https://www.figma.com/design/nMxw4QuOb5eQGHu4kk2w5G/Figma-IoT?t=K46PkW3FirboTfOz-1',
     bg: '#a259ff',
     icon: (
       <path d="M8 24c2.2 0 4-1.8 4-4v-4H8c-2.2 0-4 1.8-4 4s1.8 4 4 4zm0-20H4c-2.2 0-4 1.8-4 4s1.8 4 4 4h4V4zM12 0H8C5.8 0 4 1.8 4 4s1.8 4 4 4h4V0zm4 8c2.2 0 4-1.8 4-4s-1.8-4-4-4h-4v8h4zm0 2h-4v8h4c2.2 0 4-1.8 4-4s-1.8-4-4-4z" />
@@ -28,7 +28,7 @@ const PROFILE_LINKS: ProfileLinkItem[] = [
     ),
   },
   {
-    label: 'API Postman Docs',
+    label: 'Postman',
     href: 'https://postman.com',
     bg: '#ff6c37',
     icon: (
@@ -44,27 +44,32 @@ export default function ProfilePage() {
         {/* Profile Card Container */}
         <div className="bg-[#0f1720] border border-[#1e2d42] rounded-3xl overflow-hidden shadow-2xl">
           {/* Header Banner & Avatar */}
-          <div className="px-8 pb-6 pt-8">
-            <div className="mb-6 flex items-center gap-5">
-              <div className="w-28 h-28 rounded-2xl border-4 border-[#1e2d42] bg-gradient-to-br from-teal-400 via-sky-500 to-blue-600 flex items-center justify-center shrink-0 shadow-lg">
-                <svg className="w-14 h-14 text-white" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
-                </svg>
+          <div className="px-6 pb-4 pt-6">
+            <div className="mb-4 flex items-center gap-4">
+
+              <div className="w-20 h-25 rounded-xl border-4 border-[#1e2d42] bg-gradient-to-br from-teal-400 via-sky-500 to-blue-600 flex items-center justify-center shrink-0 shadow-lg">
+                <img
+
+                  src={'src/assets/anh the.jpg'}  // <-- Truyền biến vào đây
+                  alt="Profile Avatar"
+                  className="w-full h-full object-cover rounded-2xl"
+
+                />
               </div>
 
               <div className="flex flex-col">
-                <div className="text-2xl font-bold text-white tracking-wide">{USER_INFO.name}</div>
-                <div className="text-xs font-mono text-[#00d4a8] mt-1 font-semibold">
+                <div className="text-xl font-bold text-white tracking-wide">{USER_INFO.name}</div>
+                <div className="text-sm font-mono text-[#00d4a8] mt-1 font-semibold">
                   {USER_INFO.role}
                 </div>
               </div>
             </div>
 
             {/* Divider */}
-            <div className="border-t border-[#1e2d42] mb-6" />
+            <div className="border-t border-[#1e2d42] mb-4" />
 
             {/* Student Info Grid */}
-            <div className="grid grid-cols-2 gap-3.5 mb-6">
+            <div className="grid grid-cols-2 gap-2.5 mb-4">
               {[
                 { label: 'Student ID', value: USER_INFO.studentId },
                 { label: 'Full Name', value: USER_INFO.name },
@@ -85,7 +90,7 @@ export default function ProfilePage() {
 
             {/* Project Links Section */}
             <div className="mb-2 text-[10px] font-mono text-[#64748b] uppercase tracking-widest font-semibold">
-              Project Resources & Artifacts
+              Project Resources
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-2">

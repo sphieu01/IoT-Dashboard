@@ -2,13 +2,13 @@ import { ReactNode } from 'react'
 
 export type PageTab = 'dashboard' | 'data-sensor' | 'history' | 'my-profile'
 
+export type SensorType = 'Light' | 'Humidity' | 'Temperature'
+
 export interface SensorReading {
   id: number
-  time: string
+  sensorType: SensorType
+  value: number
   fullTime: string
-  temp: number
-  humidity: number
-  light: number
 }
 
 export type DeviceAction = 'ON' | 'OFF'
