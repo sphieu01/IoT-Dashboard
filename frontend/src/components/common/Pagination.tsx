@@ -10,11 +10,11 @@ export interface PaginationProps {
 export default function Pagination({ page, total, perPage, onChange }: PaginationProps) {
   const pages = Math.ceil(total / perPage)
   if (pages <= 1) return null
-  
+
   // Tính toán cửa sổ hiển thị trang (hiển thị tối đa 3 nút xung quanh trang hiện tại)
   let start = Math.max(1, page - 1)
   let end = Math.min(pages, page + 1)
-  
+
   // Điều chỉnh nếu đang ở trang đầu hoặc trang cuối
   if (page === 1) end = Math.min(pages, 3)
   if (page === pages) start = Math.max(1, pages - 2)
@@ -25,7 +25,7 @@ export default function Pagination({ page, total, perPage, onChange }: Paginatio
   }
 
   return (
-    <div className="flex items-center justify-center gap-1 py-5">
+    <div className="flex items-center justify-center gap-1 py-2">
       {[
         { label: 'First', to: 1 },
         { label: 'Previous', to: page - 1 },

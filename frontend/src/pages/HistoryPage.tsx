@@ -6,8 +6,6 @@ interface HistoryPageProps {
   logs: HistoryLog[]
 }
 
-const PER_PAGE = 10
-
 export default function HistoryPage({ logs }: HistoryPageProps) {
   const [deviceFilter, setDeviceFilter] = useState('all')
   const [actionFilter, setActionFilter] = useState('all')
@@ -15,6 +13,7 @@ export default function HistoryPage({ logs }: HistoryPageProps) {
   const [timeQuery, setTimeQuery] = useState('')
   const [committedTimeQuery, setCommittedTimeQuery] = useState('')
   const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(8)
 
   const filtered = logs.filter((l) => {
     if (deviceFilter !== 'all' && l.device !== deviceFilter) return false
@@ -25,7 +24,9 @@ export default function HistoryPage({ logs }: HistoryPageProps) {
     return true
   })
 
-  const pageRows = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE)
+  const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize)
+  const showFrom = filtered.length === 0 ? 0 : (page - 1) * pageSize + 1
+  const showTo = Math.min(page * pageSize, filtered.length)
 
   return (
     <div className="flex flex-col gap-5">
@@ -114,7 +115,7 @@ export default function HistoryPage({ logs }: HistoryPageProps) {
 
 
       {/* History Log Table */}
-      <div className="bg-[#0f1720] border border-[#1e2d42] rounded-2xl overflow-hidden shadow-xl">
+      <div className="bg-[#0f1720] border border-[#1e2d42] overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -158,11 +159,32 @@ export default function HistoryPage({ logs }: HistoryPageProps) {
           </table>
         </div>
 
-        <div className="flex items-center justify-between px-6 py-2 border-t border-[#1e2d42] shrink-0">
+        <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-4 px-6 py-2.5 border-t border-[#1e2d42] shrink-0">
           <span className="text-xs font-mono text-[#64748b]">
-            Showing {pageRows.length} values of {filtered.length}
+            Showing {filtered.length === 0 ? '0 of 0' : `${showFrom}-${showTo} of ${filtered.length}`} records
           </span>
-          <Pagination page={page} total={filtered.length} perPage={PER_PAGE} onChange={setPage} />
+
+          <div className="flex items-center gap-2 text-xs font-mono text-[#64748b]">
+            <span>Rows per page:</span>
+            <div className="relative">
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value))
+                  setPage(1)
+                }}
+                className="bg-[#090d13] border border-[#1e2d42] rounded-lg px-2.5 py-1 text-xs text-[#e2e8f0] font-mono focus:outline-none focus:border-[#00d4a8] transition-colors appearance-none pr-6 cursor-pointer"
+              >
+                <option value={8}>8</option>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+              <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[#64748b] text-[10px]">▾</span>
+            </div>
+          </div>
+
+          <Pagination page={page} total={filtered.length} perPage={pageSize} onChange={setPage} />
         </div>
       </div>
     </div>

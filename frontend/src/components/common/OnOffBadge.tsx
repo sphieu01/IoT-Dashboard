@@ -18,11 +18,11 @@ export default function OnOffBadge({ value, dim }: OnOffBadgeProps) {
 
   return (
     <span
-      className={`px-3 py-1 rounded-full text-xs font-semibold font-mono inline-flex items-center gap-1.5 ${base} ${dim ? 'opacity-50' : ''
+      className={`px-3 py-0.5 rounded-full text-xs font-semibold font-mono inline-flex items-center gap-1.5 ${base} ${dim ? 'opacity-50' : ''
         }`}
     >
       {value === 'PENDING' && (
-        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+        <span className="w-1 h-1 rounded-full bg-amber-400 animate-pulse" />
       )}
       {value}
     </span>

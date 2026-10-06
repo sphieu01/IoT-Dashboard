@@ -1,5 +1,7 @@
 import React, { ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import avatarImg from '../assets/anh the.JPG'
+import { USER_INFO } from '../services/mockData'
 
 interface NavItemProps {
   label: string
@@ -66,6 +68,22 @@ export default function Layout({ children }: LayoutProps) { // children =  tất
             active={isProfile}
           />
         </nav>
+
+        {/* User Info at the bottom-left */}
+        <div className="px-3 pt-4 border-t border-[#1e2d42]">
+          <div className="flex items-center gap-3 px-3">
+            <div className="w-8 h-8 rounded-full overflow-hidden border border-[#1e2d42] shrink-0 bg-[#121c29]">
+              <img
+                src={avatarImg}
+                alt="Avatar"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <span className="text-sm font-medium text-white ">
+              {USER_INFO.name}
+            </span>
+          </div>
+        </div>
       </aside>
 
       {/* Main Content Area */}
