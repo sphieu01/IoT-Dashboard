@@ -34,8 +34,10 @@
 		</dependency>
 
 		<!-- WebSocket for Realtime Telemetry Broadcast -->
+		<!-- Tạo các REST API (các file trong controller/ như @GetMapping, @PostMapping). -->
+		<!-- Nhúng sẵn máy chủ Tomcat chạy trên cổng 8080 -->
 		<dependency>
-			<groupId>org.springframework.boot</groupId>
+			<groupId>org.springframework.boot</groupId> 
 			<artifactId>spring-boot-starter-websocket</artifactId>
 		</dependency>
 
