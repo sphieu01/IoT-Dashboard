@@ -8,10 +8,11 @@ export interface PaginationProps {
 }
 
 export default function Pagination({ page, total, perPage, onChange }: PaginationProps) {
-  const pages = Math.ceil(total / perPage)
+  const pages = Math.ceil(total / perPage) // 35 / 8 = 4.375 => 5
   if (pages <= 1) return null
 
   // Tính toán cửa sổ hiển thị trang (hiển thị tối đa 3 nút xung quanh trang hiện tại)
+  // đang trang 5: start = 4, end = 6 → hiển thị mảng [4, 5, 6]
   let start = Math.max(1, page - 1)
   let end = Math.min(pages, page + 1)
 

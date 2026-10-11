@@ -12,11 +12,12 @@ import java.util.Optional;
 @Repository
 public interface DeviceHistoryRepository extends JpaRepository<DeviceHistory, Long> {
 
-    List<DeviceHistory> findAllByOrderByCreatedAtDesc();
+    List<DeviceHistory> findAllByOrderByExecutedAtDesc();
 
-    Page<DeviceHistory> findAllByOrderByCreatedAtDesc(Pageable pageable);
-    Page<DeviceHistory> findAllByOrderByCreatedAtAsc(Pageable pageable);
+    Page<DeviceHistory> findAllByOrderByExecutedAtDesc(Pageable pageable);
 
-    // Tìm bản ghi PENDING gần nhất của thiết bị để chuyển thành ON/OFF khi ESP32 ACK
-    Optional<DeviceHistory> findTop1ByDeviceAndStatusOrderByCreatedAtDesc(String device, String status);
+    Page<DeviceHistory> findAllByOrderByExecutedAtAsc(Pageable pageable);
+
+    // Tìm bản ghi PENDING gần nhất của thiết bị để chuyển thành ON/OFF/SUCCESS khi ESP32 ACK
+    Optional<DeviceHistory> findTop1ByDevice_NameIgnoreCaseAndStatusOrderByExecutedAtDesc(String deviceName, String status);
 }

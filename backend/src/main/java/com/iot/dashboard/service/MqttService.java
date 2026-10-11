@@ -56,6 +56,8 @@ public class MqttService implements MqttCallback {
 
     private MqttClient client;
     private boolean isConnected = false;
+    private volatile long lastSensorReceivedAt = 0;
+    private volatile boolean isEspConnected = false;
 
     public MqttService(
             @Lazy SensorService sensorService,
@@ -69,10 +71,28 @@ public class MqttService implements MqttCallback {
     @PostConstruct
     public void start() {
         connectToBroker();
+        startWatchdog();
+    }
+
+    private void startWatchdog() {
+        scheduler.scheduleAtFixedRate(() -> {
+            try {
+                if (isEspConnected && lastSensorReceivedAt > 0 && (System.currentTimeMillis() - lastSensorReceivedAt > 5000)) {
+                    isEspConnected = false;
+                    log.warn("🔴 [ESP32 Watchdog] Quá 5s không nhận được telemetry -> Đánh dấu ESP32 OFFLINE");
+                    webSocketHandler.broadcast("{\"type\":\"ESP_STATUS\",\"status\":\"OFFLINE\"}");
+                }
+            } catch (Exception e) {
+                log.error("[ESP32 Watchdog] Lỗi kiểm tra nhịp tim ESP32: {}", e.getMessage());
+            }
+        }, 1, 1, TimeUnit.SECONDS);
     }
 
     private void connectToBroker() {
         try {
+            if (brokerUrl != null) {
+                brokerUrl = brokerUrl.trim();
+            }
             log.info("[MQTT] Đang kết nối tới MQTT Broker tại {}...", brokerUrl);
             client = new MqttClient(brokerUrl, clientId + "-" + System.currentTimeMillis(), new org.eclipse.paho.client.mqttv3.persist.MemoryPersistence());
             
@@ -83,8 +103,8 @@ public class MqttService implements MqttCallback {
             options.setAutomaticReconnect(true);
 
             if (username != null && !username.isEmpty()) {
-                options.setUserName(username);
-                options.setPassword(password.toCharArray());
+                options.setUserName(username.trim());
+                options.setPassword(password.trim().toCharArray());
             }
 
             client.setCallback(this);
@@ -92,11 +112,11 @@ public class MqttService implements MqttCallback {
             isConnected = true;
 
             // Đăng ký nhận dữ liệu từ ESP32
-            client.subscribe(topicSensor);
-            client.subscribe(topicStatus);
+            client.subscribe(topicSensor.trim());
+            client.subscribe(topicStatus.trim());
 
             log.info("✅ [MQTT] Đã kết nối MQTT Broker thành công! Subscribed: [{}, {}]", topicSensor, topicStatus);
-        } catch (MqttException e) {
+        } catch (Exception e) {
             isConnected = false;
             log.warn("⚠️ [MQTT] Chưa kết nối được Broker ({}) - {}", brokerUrl, e.getMessage());
             log.info("💡 [MQTT] Chế độ mô phỏng tự động bật (Simulation Mode). Hệ thống vẫn hoạt động bình thường!");
@@ -146,19 +166,46 @@ public class MqttService implements MqttCallback {
         try {
             // 1. Dữ liệu cảm biến từ ESP32 gửi lên (data/sensors)
             if (topicSensor.equals(topic)) {
+                lastSensorReceivedAt = System.currentTimeMillis();
+                if (!isEspConnected) {
+                    isEspConnected = true;
+                    log.info("🟢 [ESP32 Watchdog] Đã nhận tín hiệu từ ESP32 -> Đánh dấu ESP32 ONLINE");
+                    webSocketHandler.broadcast("{\"type\":\"ESP_STATUS\",\"status\":\"ONLINE\"}");
+                }
+
                 JsonNode json = objectMapper.readTree(payload);
                 Double temp = json.has("temp") ? json.get("temp").asDouble() : 0.0;
                 Double humid = json.has("humid") ? json.get("humid").asDouble() : 0.0;
-                Double light = json.has("light") ? json.get("light").asDouble() : 0.0;
+                Double rawLight = json.has("light") ? json.get("light").asDouble() : 0.0;
 
-                // Lưu vào database
-                sensorService.saveReading(temp, humid, light);
+                // Đảo chiều quang trở: ESP32 ADC 12-bit (0 - 4095).
+                // Mạch cầu phân áp khiến trời tối điện áp tăng (ADC cao), trời sáng điện áp giảm (ADC thấp).
+                // Đảo chiều 4095 - rawLight để: Chiếu đèn -> Lux tăng cao, Che tay -> Lux hạ xuống thấp.
+                Double light = Math.max(0.0, 4095.0 - rawLight);
 
-                // Broadcast qua WebSocket tới Web Dashboard
-                String timeStr = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+                // Lưu vào database và lấy ra danh sách bản ghi với ID tự tăng thật
+                java.util.List<com.iot.dashboard.entity.DataSensor> savedList = sensorService.saveReading(temp, humid, light);
+
+                com.iot.dashboard.entity.DataSensor savedTemp = savedList.get(0);
+                com.iot.dashboard.entity.DataSensor savedHum = savedList.get(1);
+                com.iot.dashboard.entity.DataSensor savedLight = savedList.get(2);
+
+                String fullTime = savedTemp.getMeasuredAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                String timeStr = savedTemp.getMeasuredAt().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+
+                // Broadcast qua WebSocket tới Web Dashboard (bao gồm LiveChart và các bản ghi ID thật cho DataSensor)
                 String wsMsg = String.format(
-                        "{\"type\":\"SENSOR_UPDATE\",\"time\":\"%s\",\"temp\":%.1f,\"humidity\":%.1f,\"light\":%.1f}",
-                        timeStr, temp, humid, light
+                        java.util.Locale.US,
+                        "{\"type\":\"SENSOR_UPDATE\",\"time\":\"%s\",\"temp\":%.1f,\"humidity\":%.1f,\"light\":%.1f," +
+                        "\"records\":[" +
+                        "{\"id\":%d,\"sensorType\":\"Light\",\"value\":%.1f,\"fullTime\":\"%s\"}," +
+                        "{\"id\":%d,\"sensorType\":\"Humidity\",\"value\":%.1f,\"fullTime\":\"%s\"}," +
+                        "{\"id\":%d,\"sensorType\":\"Temperature\",\"value\":%.1f,\"fullTime\":\"%s\"}" +
+                        "]}",
+                        timeStr, temp, humid, light,
+                        savedLight.getId(), light, fullTime,
+                        savedHum.getId(), humid, fullTime,
+                        savedTemp.getId(), temp, fullTime
                 );
                 webSocketHandler.broadcast(wsMsg);
             }

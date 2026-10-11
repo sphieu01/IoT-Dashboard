@@ -22,15 +22,15 @@ public class HistoryService {
 
     // Lấy toàn bộ lịch sử bật tắt cho HistoryPage
     public List<HistoryLogDto> getAllHistoryLogs() {
-        List<DeviceHistory> list = historyRepository.findAllByOrderByCreatedAtDesc();
+        List<DeviceHistory> list = historyRepository.findAllByOrderByExecutedAtDesc();
         List<HistoryLogDto> result = new ArrayList<>();
         for (DeviceHistory h : list) {
             result.add(new HistoryLogDto(
                     h.getId(),
-                    h.getDevice(),
+                    h.getDevice() != null ? h.getDevice().getName() : "",
                     h.getAction(),
                     h.getStatus(),
-                    h.getCreatedAt().format(fullTimeFormatter)
+                    h.getExecutedAt().format(fullTimeFormatter)
             ));
         }
         return result;
@@ -39,17 +39,17 @@ public class HistoryService {
     // Lấy lịch sử có phân trang, tìm kiếm và lọc
     public Map<String, Object> getFilteredHistoryLogs(String query, String sort, int page, int perPage) {
         Sort sortOrder = "oldest".equalsIgnoreCase(sort)
-                ? Sort.by(Sort.Direction.ASC, "createdAt")
-                : Sort.by(Sort.Direction.DESC, "createdAt");
+                ? Sort.by(Sort.Direction.ASC, "executedAt")
+                : Sort.by(Sort.Direction.DESC, "executedAt");
 
         List<DeviceHistory> list = historyRepository.findAll(sortOrder);
         
         List<HistoryLogDto> mapped = list.stream().map(h -> new HistoryLogDto(
                 h.getId(),
-                h.getDevice(),
+                h.getDevice() != null ? h.getDevice().getName() : "",
                 h.getAction(),
                 h.getStatus(),
-                h.getCreatedAt().format(fullTimeFormatter)
+                h.getExecutedAt().format(fullTimeFormatter)
         )).collect(Collectors.toList());
 
         // Tìm kiếm theo query
@@ -62,21 +62,18 @@ public class HistoryService {
                    item.getFullTime().toLowerCase().contains(q);
         }).collect(Collectors.toList());
 
-        int totalItems = filtered.size();
-        int totalPages = Math.max(1, (int) Math.ceil((double) totalItems / perPage));
-        int currentPage = Math.max(1, Math.min(page, totalPages));
+        int total = filtered.size();
+        int totalPages = (int) Math.ceil((double) total / perPage);
+        int fromIndex = Math.min((page - 1) * perPage, total);
+        int toIndex = Math.min(fromIndex + perPage, total);
 
-        int fromIndex = (currentPage - 1) * perPage;
-        int toIndex = Math.min(fromIndex + perPage, totalItems);
-
-        List<HistoryLogDto> pageData = (fromIndex <= totalItems) ? filtered.subList(fromIndex, toIndex) : Collections.emptyList();
+        List<HistoryLogDto> pagedData = filtered.subList(fromIndex, toIndex);
 
         Map<String, Object> response = new HashMap<>();
-        response.put("data", pageData);
-        response.put("total", totalItems);
-        response.put("page", currentPage);
+        response.put("data", pagedData);
+        response.put("total", total);
         response.put("totalPages", totalPages);
-        response.put("perPage", perPage);
+        response.put("currentPage", page);
 
         return response;
     }

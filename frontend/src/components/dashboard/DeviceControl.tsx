@@ -22,9 +22,9 @@ export default function DeviceControl({
 
         let borderColor = 'border-[#1e2d42]'
         if (isPending) {
-          borderColor = 'border-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.15)]'
+          borderColor = 'border-amber-500/50 '
         } else if (isDeviceOn) {
-          borderColor = 'border-[#00d4a8]/50 shadow-[0_0_20px_rgba(0,212,168,0.1)]'
+          borderColor = 'border-[#00d4a8]/50 '
         }
 
         return (
@@ -34,9 +34,9 @@ export default function DeviceControl({
           >
             <div // icon
               className={`text-4xl select-none transition-all duration-300 ${isPending
-                ? 'drop-shadow-[0_0_15px_rgba(245,158,11,0.6)] animate-pulse'
+                ? 'animate-pulse'
                 : isDeviceOn
-                  ? 'drop-shadow-[0_0_15px_rgba(0,212,168,0.6)] scale-110'
+                  ? 'scale-110'
                   : 'opacity-30 grayscale'
                 }`}
             >
@@ -53,8 +53,7 @@ export default function DeviceControl({
               size="lg"
             />
 
-            <div className={`text-xs font-mono font-bold tracking-wider text-amber-400 flex items-center gap-1.5 ${isPending ? 'visible' : 'invisible'}`}>
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+            <div className={`text-xs font-mono font-bold text-amber-400 flex items-center gap-1.5 ${isPending ? 'visible' : 'invisible'}`}>
               <span>PENDING...</span>
             </div>
           </div>

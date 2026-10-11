@@ -22,8 +22,8 @@ TẦNG CUỐI — Điểm khởi động ứng dụng (main)
 | Thứ tự | File | Nội dung | Trạng thái |
 |---|---|---|:---:|
 | 1 | `src/types/index.ts` | Khai báo tất cả kiểu TypeScript (`PageTab`, `SensorReading`, `DeviceStates`...) | ✅ | 
-| 2 | `src/services/api.ts` | Hàm tạo dữ liệu giả (`randomTemp`, `generateLiveReading`...) | ✔ |
-| 3 | `src/services/mockData.ts` | Dữ liệu mẫu ban đầu (`INITIAL_SENSOR_ROWS`, `INITIAL_HISTORY_ROWS`) | ✅ |
+| 2 | `src/services/api.ts` | Tầng gọi API Backend (REST & WebSocket Telemetry) | ✔ |
+| 3 | `src/services/mockData.ts` | Cấu hình UI và thông tin tĩnh (`USER_INFO`, `DEVICES_CONFIG`) | ✅ |
 
 ---
 
@@ -77,30 +77,31 @@ TẦNG CUỐI — Điểm khởi động ứng dụng (main)
 
 | Thứ tự | File | Nội dung & Điểm mấu chốt cần nắm | Đã đọc |
 |---|---|---|:---:|
-| B0.1 | `backend/pom.xml` | Khai báo các Starter: Web, JPA, WebSocket, Paho MQTT v3, MySQL, H2. | [ ] |
-| B0.2 | `backend/src/main/resources/application.properties` | Khai báo port (8080), MQTT Broker (`tcp://localhost:1883`), Topic MQTT, DB H2 in-memory. | [ ] |
-| B0.3 | `backend/src/main/resources/application-mysql.properties` | Cấu hình chuyển đổi sang MySQL thật khi cần chạy production. | [ ] |
+| B0.1 | `backend/pom.xml` | Khai báo các Starter: Web, JPA, WebSocket, Paho MQTT v3, MySQL, H2. | [✅] |
+| B0.2 | `backend/src/main/resources/application.properties` | Khai báo port (8080), MQTT Broker (`tcp://localhost:1883`), Topic MQTT, DB H2 in-memory. | [✅] |
+| B0.3 | `backend/src/main/resources/application-mysql.properties` | Cấu hình chuyển đổi sang MySQL thật khi cần chạy production. | [✅] |
 
 ---
 
 ## 🌿 TẦNG 1 — Mô hình dữ liệu thuần túy (Entity & DTO)
 *Các class này là khuôn mẫu dữ liệu (POJO), hoàn toàn độc lập, không phụ thuộc vào tầng nào.*
 
-### 1.1. Entities (Ánh xạ trực tiếp bảng Database)
+### 1.1. Entities (Ánh xạ trực tiếp bảng Database - Cách B Chuẩn hóa)
 | Thứ tự | File | Nội dung & Điểm mấu chốt cần nắm | Đã đọc |
 |---|---|---|:---:|
-| B1.1 | `backend/src/main/java/com/iot/dashboard/entity/DeviceHistory.java` | Bảng `device_history`: Lưu log hành động bật/tắt (`device`, `action`, `createdAt`). Có đánh index để tìm kiếm nhanh. | [ ] |
-| B1.2 | `backend/src/main/java/com/iot/dashboard/entity/DeviceState.java` | Bảng `device_states`: Lưu trạng thái hiện tại của từng thiết bị (`id`, `name`, `status`, `lastUpdated`). | [ ] |
-| B1.3 | `backend/src/main/java/com/iot/dashboard/entity/SensorReading.java` | Bảng `sensor_readings`: Lưu chỉ số cảm biến đo được (`temperature`, `humidity`, `light`, `timestamp`). | [ ] |
+| B1.1 | `backend/src/main/java/com/iot/dashboard/entity/Sensor.java` | Bảng `tbl_sensors`: Danh mục cảm biến (`id`, `name`, `type` như DHT11, LDR). | [ ] |
+| B1.2 | `backend/src/main/java/com/iot/dashboard/entity/Device.java` | Bảng `tbl_devices`: Danh mục thiết bị điều khiển (`id`, `name`, `current_status` như Light, Fan). | [ ] |
+| B1.3 | `backend/src/main/java/com/iot/dashboard/entity/DataSensor.java` | Bảng `tbl_datasensors`: Lưu số liệu đo theo từng cảm biến (`id`, `sensor_id` FK, `value`, `measured_at`). | [ ] |
+| B1.4 | `backend/src/main/java/com/iot/dashboard/entity/DeviceHistory.java` | Bảng `history`: Lưu lịch sử bật/tắt thiết bị (`id`, `device_id` FK, `action`, `status`, `executed_at`). | [ ] |
 
 ### 1.2. DTO (Data Transfer Object - Gói dữ liệu trao đổi với Web Client)
 | Thứ tự | File | Nội dung & Điểm mấu chốt cần nắm | Đã đọc |
 |---|---|---|:---:|
-| B1.4 | `backend/src/main/java/com/iot/dashboard/dto/DeviceToggleRequest.java` | Nhận request bật/tắt thiết bị từ Frontend gửi lên: `{ "status": true/false }`. | [ ] |
-| B1.5 | `backend/src/main/java/com/iot/dashboard/dto/LiveChartPointDto.java` | Format điểm dữ liệu nhẹ để vẽ biểu đồ realtime (`time`, `temperature`, `humidity`, `light`). | [ ] |
-| B1.6 | `backend/src/main/java/com/iot/dashboard/dto/SensorFlatDto.java` | Dữ liệu từng dòng cho bảng Data Sensor (hỗ trợ phân trang, lọc). | [ ] |
-| B1.7 | `backend/src/main/java/com/iot/dashboard/dto/HistoryLogDto.java` | Dữ liệu từng dòng log cho bảng History bật/tắt thiết bị. | [ ] |
-| B1.8 | `backend/src/main/java/com/iot/dashboard/dto/ProfileResponse.java` | Trả về thông tin sinh viên/nhà phát triển hệ thống. | [ ] |
+| B1.5 | `backend/src/main/java/com/iot/dashboard/dto/DeviceToggleRequest.java` | Nhận request bật/tắt thiết bị từ Frontend gửi lên: `{ "device": "Light", "action": "ON" }`. | [ ] |
+| B1.6 | `backend/src/main/java/com/iot/dashboard/dto/LiveChartPointDto.java` | Format điểm dữ liệu nhẹ để vẽ biểu đồ realtime (`time`, `temperature`, `humidity`, `light`). | [ ] |
+| B1.7 | `backend/src/main/java/com/iot/dashboard/dto/SensorFlatDto.java` | Dữ liệu từng dòng cho bảng Data Sensor (hỗ trợ phân trang, lọc). | [ ] |
+| B1.8 | `backend/src/main/java/com/iot/dashboard/dto/HistoryLogDto.java` | Dữ liệu từng dòng log cho bảng History bật/tắt thiết bị. | [ ] |
+| B1.9 | `backend/src/main/java/com/iot/dashboard/dto/ProfileResponse.java` | Trả về thông tin sinh viên/nhà phát triển hệ thống. | [ ] |
 
 ---
 
@@ -109,9 +110,10 @@ TẦNG CUỐI — Điểm khởi động ứng dụng (main)
 
 | Thứ tự | File | Nội dung & Điểm mấu chốt cần nắm | Đã đọc |
 |---|---|---|:---:|
-| B2.1 | `backend/src/main/java/com/iot/dashboard/repository/DeviceStateRepository.java` | Truy vấn và cập nhật trạng thái thiết bị theo ID (`LED`, `FAN`,...). | [ ] |
-| B2.2 | `backend/src/main/java/com/iot/dashboard/repository/DeviceHistoryRepository.java` | Lấy lịch sử thiết bị, sắp xếp theo thời gian mới nhất (`findAllByOrderByCreatedAtDesc`). | [ ] |
-| B2.3 | `backend/src/main/java/com/iot/dashboard/repository/SensorReadingRepository.java` | Lấy 1 bản ghi mới nhất cho Dashboard (`findTopByOrderByTimestampDesc`), lấy 10 điểm cho biểu đồ, truy vấn theo khoảng thời gian. | [ ] |
+| B2.1 | `backend/src/main/java/com/iot/dashboard/repository/SensorRepository.java` | Quản lý danh mục cảm biến (`findByType`, `findByNameAndType`). | [ ] |
+| B2.2 | `backend/src/main/java/com/iot/dashboard/repository/DeviceRepository.java` | Quản lý danh mục thiết bị (`findByNameIgnoreCase`). | [ ] |
+| B2.3 | `backend/src/main/java/com/iot/dashboard/repository/DataSensorRepository.java` | Truy vấn lịch sử dữ liệu cảm biến (`findTop45ByOrderByMeasuredAtDesc`, phân trang theo thời gian). | [ ] |
+| B2.4 | `backend/src/main/java/com/iot/dashboard/repository/DeviceHistoryRepository.java` | Truy vấn lịch sử thao tác thiết bị (`findAllByOrderByExecutedAtDesc`, tìm log PENDING). | [ ] |
 
 ---
 

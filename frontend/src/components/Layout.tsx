@@ -79,7 +79,7 @@ export default function Layout({ children }: LayoutProps) { // children =  tất
                 className="w-full h-full object-cover"
               />
             </div>
-            <span className="text-sm font-medium text-white ">
+            <span className="text-sm font-medium text-white truncate">
               {USER_INFO.name}
             </span>
           </div>

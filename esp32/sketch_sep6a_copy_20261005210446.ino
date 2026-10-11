@@ -121,6 +121,8 @@ void loop() {
     
     float tc = dht.readTemperature(false);
     float hu = dht.readHumidity();
+    // Đọc giá trị thô từ chân LDR (0 - 4095). Backend Spring Boot sẽ tự động đảo chiều (4095 - light)
+    // để đảm bảo chiếu đèn thì Lux tăng cao, che tay thì Lux hạ thấp.
     int lightRaw = analogRead(LDR_PIN);
 
     if (isnan(tc) || isnan(hu)) return;

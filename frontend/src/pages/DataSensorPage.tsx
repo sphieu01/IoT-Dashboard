@@ -4,7 +4,7 @@ import { C_LIGHT, C_HUMIDITY, C_TEMP } from '../services/mockData'
 import { SensorReading, SensorType } from '../types'
 
 interface DataSensorPageProps {
-  rows: SensorReading[]
+  rows?: SensorReading[]
 }
 
 const SENSOR_META: Record<SensorType, { unit: string; color: string }> = {
@@ -13,7 +13,7 @@ const SENSOR_META: Record<SensorType, { unit: string; color: string }> = {
   Temperature: { unit: '°C', color: C_TEMP },
 }
 
-export default function DataSensorPage({ rows }: DataSensorPageProps) {
+export default function DataSensorPage({ rows = [] }: DataSensorPageProps) {
   const [sort, setSort] = useState<'newest' | 'oldest'>('newest')
   const [searchType, setSearchType] = useState<'all' | 'light' | 'humidity' | 'temp' | 'time'>('all')
   const [query, setQuery] = useState('')
@@ -21,19 +21,19 @@ export default function DataSensorPage({ rows }: DataSensorPageProps) {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(8)
 
+  // 1. Sắp xếp theo ID
   const sorted = [...rows].sort((a, b) => (sort === 'newest' ? b.id - a.id : a.id - b.id))
 
+  // 2. Lọc theo tìm kiếm
   const filtered = sorted.filter((f) => {
-    // Nếu chưa nhập gì vào ô search -> không lọc, hiển thị tất cả
     if (!committedQuery.trim()) return true
-
     const q = committedQuery.trim().toLowerCase()
 
-    // Khi có nhập text -> mới bắt đầu lọc theo loại và theo giá trị
     if (searchType === 'all') {
       return (
         f.sensorType.toLowerCase().includes(q) ||
-        String(f.value).includes(q)
+        String(f.value).includes(q) ||
+        f.fullTime.toLowerCase().includes(q)
       )
     }
     if (searchType === 'light') return f.sensorType === 'Light' && String(f.value).includes(q)
@@ -44,6 +44,7 @@ export default function DataSensorPage({ rows }: DataSensorPageProps) {
     return true
   })
 
+  // 3. Giới hạn chính xác: Chỉ lấy đúng số dòng theo pageSize (mặc định 8 dòng đầu ở page 1)
   const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize)
   const showFrom = filtered.length === 0 ? 0 : (page - 1) * pageSize + 1
   const showTo = Math.min(page * pageSize, filtered.length)
@@ -52,6 +53,7 @@ export default function DataSensorPage({ rows }: DataSensorPageProps) {
     <div className="flex flex-col gap-5">
       {/* Filter and Search Controls */}
       <div className="flex flex-wrap items-center gap-3 shrink-0">
+        {/* Sort button */}
         <div className="relative">
           <select
             value={sort}
@@ -67,6 +69,7 @@ export default function DataSensorPage({ rows }: DataSensorPageProps) {
           <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#64748b] text-xs">▾</span>
         </div>
 
+        {/* Search type */}
         <div className="relative">
           <select
             value={searchType}
@@ -85,10 +88,11 @@ export default function DataSensorPage({ rows }: DataSensorPageProps) {
           <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#64748b] text-xs">▾</span>
         </div>
 
+        {/* Search input + Search button */}
         <div className="flex flex-1 gap-2">
           <input
             className={`${inputCls} flex-1`}
-            // placeholder="Enter search value"
+            placeholder="Search value..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
@@ -103,7 +107,7 @@ export default function DataSensorPage({ rows }: DataSensorPageProps) {
               setCommittedQuery(query)
               setPage(1)
             }}
-            className="px-4 py-2 bg-[#1e2d42] hover:bg-[#00d4a8]/20 border border-[#1e2d42] hover:border-[#00d4a8]/50 text-[#94a3b8] hover:text-[#00d4a8] rounded-xl text-sm font-mono font-semibold transition-all duration-200 whitespace-nowrap"
+            className="px-5 py-2 bg-[#1e2d42] hover:bg-[#00d4a8]/20 border border-[#1e2d42] hover:border-[#00d4a8]/50 text-[#94a3b8] hover:text-[#00d4a8] rounded-xl text-sm font-mono font-semibold transition-all duration-200 whitespace-nowrap cursor-pointer"
           >
             Search
           </button>
@@ -111,7 +115,7 @@ export default function DataSensorPage({ rows }: DataSensorPageProps) {
       </div>
 
       {/* Sensor Data Table */}
-      <div className="bg-[#0f1720] border border-[#1e2d42] overflow-hidden">
+      <div className="bg-[#0f1720] border border-[#1e2d42] overflow-hidden rounded-xl shadow-lg">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="sticky top-0">
@@ -124,7 +128,7 @@ export default function DataSensorPage({ rows }: DataSensorPageProps) {
             </thead>
             <tbody>
               {pageRows.map((f, i) => {
-                const meta = SENSOR_META[f.sensorType]
+                const meta = SENSOR_META[f.sensorType] || { unit: '', color: '#fff' }
                 return (
                   <tr
                     key={f.id}

@@ -32,6 +32,7 @@ export default function HistoryPage({ logs }: HistoryPageProps) {
     <div className="flex flex-col gap-5">
       {/* Filters Bar */}
       <div className="flex flex-wrap items-center gap-3">
+        {/* All devices */}
         <div className="relative">
           <select
             value={deviceFilter}
@@ -50,6 +51,7 @@ export default function HistoryPage({ logs }: HistoryPageProps) {
           </span>
         </div>
 
+        {/* All actions */}
         <div className="relative">
           <select
             value={actionFilter}
@@ -68,6 +70,7 @@ export default function HistoryPage({ logs }: HistoryPageProps) {
           </span>
         </div>
 
+        {/* All status */}
         <div className="relative">
           <select
             value={statusFilter}
@@ -87,6 +90,7 @@ export default function HistoryPage({ logs }: HistoryPageProps) {
           </span>
         </div>
 
+        {/* Search time */}
         <div className="flex flex-1 gap-2">
           <input
             className={`${inputCls} flex-1`}

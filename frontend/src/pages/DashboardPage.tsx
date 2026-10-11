@@ -9,6 +9,8 @@ interface DashboardPageProps {
   devices: DeviceStates
   pendingDevices?: Record<string, boolean>
   onToggle: (key: string) => void
+  isConnected?: boolean
+  isEspOnline?: boolean
 }
 
 export default function DashboardPage({
@@ -16,30 +18,39 @@ export default function DashboardPage({
   devices,
   pendingDevices = {},
   onToggle,
+  isConnected = true,
+  isEspOnline = false,
 }: DashboardPageProps) {
-  const latest = chartData[chartData.length - 1] ?? { temp: 0, humidity: 0, light: 0 }
+  // Chỉ lấy giá trị số khi cả kết nối Server VÀ phần cứng ESP32 đang trực tiếp hoạt động
+  const isOnline = isConnected && isEspOnline
+  const hasData = isOnline && chartData && chartData.length > 0
+  const latest = hasData ? chartData[chartData.length - 1] : null
+
+  const tempValue = isOnline && latest ? String(latest.temp) : '-'
+  const humidityValue = isOnline && latest ? String(latest.humidity) : '-'
+  const lightValue = isOnline && latest ? String(Math.round(latest.light)) : '-'
 
   return (
     <div className="flex-1 flex flex-col gap-6 min-h-0">
       {/* Sensor Metric Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3"> {/* responsive : md = medium screen*/}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <SensorCard
           label="Temperature"
-          value={String(latest.temp)}
+          value={tempValue}
           unit="°C"
           icon="🌡️"
-          bg="bg-gradient-to-br from-orange-500 to-amber-600" // gradient: to bottom-right
+          bg="bg-gradient-to-br from-orange-500 to-amber-600"
         />
         <SensorCard
           label="Humidity"
-          value={String(latest.humidity)}
+          value={humidityValue}
           unit="%"
           icon="💧"
           bg="bg-gradient-to-br from-blue-500 to-indigo-600"
         />
         <SensorCard
           label="Light"
-          value={String(Math.round(latest.light))}
+          value={lightValue}
           unit="LUX"
           icon="☀️"
           bg="bg-gradient-to-br from-amber-400 to-yellow-500"
@@ -47,8 +58,8 @@ export default function DashboardPage({
       </div>
 
       {/* Main Section: Chart + Device Switches */}
-      <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0"> {/* responsive : lg = large screen ; flex-1: chiếm hết chỗ còn lại*/}
-        <LiveChart data={chartData} />
+      <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
+        <LiveChart data={chartData} isConnected={isConnected} isEspOnline={isEspOnline} />
         <DeviceControl
           devices={devices}
           pendingDevices={pendingDevices}
