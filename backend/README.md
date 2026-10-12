@@ -54,10 +54,10 @@ Các topic và thông số trong backend đã được cấu hình khớp 100% v
 
 | Method | Endpoint | Mô tả |
 |---|---|---|
-| `GET` | `/api/sensors?page=1&limit=10&searchType=all&query=...` | Dữ liệu cảm biến phân trang, tìm kiếm |
+| `GET` | `/api/sensors/history?page=1&limit=10&searchType=all&query=...` | Dữ liệu cảm biến phân trang, tìm kiếm |
 | `GET` | `/api/sensors/latest` | 15 điểm đo mới nhất cho biểu đồ LiveChart |
 | `GET` | `/api/devices/status` | Trạng thái các thiết bị `{ "light": false, "fan": false }` |
-| `POST` | `/api/devices/toggle` | Điều khiển bật/tắt thiết bị `{ "device": "Light", "action": "ON" }` |
-| `GET` | `/api/devices/logs` | Lịch sử thao tác bật/tắt thiết bị |
+| `POST` | `/api/devices/control` | Điều khiển bật/tắt thiết bị `{ "device": "Light", "action": "ON" }` |
+| `GET` | `/api/devices/history` | Lịch sử thao tác bật/tắt thiết bị |
 | `GET` | `/api/profile` | Thông tin sinh viên (Đào Trung Hiếu - B23DCCN298) |
 | `WS` | `ws://localhost:5000/ws` | Kênh WebSocket truyền nhận dữ liệu thời gian thực |

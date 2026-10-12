@@ -1,0 +1,374 @@
+{
+	"info": {
+		"_postman_id": "iot-dashboard-ptit-2026",
+		"name": "IoT Dashboard API Test Collection",
+		"description": "Bộ kiểm thử tự động toàn bộ REST API dự án IoT Dashboard (Spring Boot 3.3.4 + MySQL)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:5000",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "1. Thiết Bị (Devices)",
+			"item": [
+				{
+					"name": "GET - Lấy trạng thái thiết bị",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code là 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Dữ liệu trả về chứa thông tin đèn và quạt\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('light');",
+									"    pm.expect(jsonData).to.have.property('fan');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/devices/status",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"devices",
+								"status"
+							]
+						},
+						"description": "Lấy trạng thái BẬT/TẮT hiện thời của thiết bị (light, fan)"
+					},
+					"response": []
+				},
+				{
+					"name": "POST - Bật đèn (Light ON)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code là 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Phản hồi ghi nhận hành động bật thiết bị thành công\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.device).to.eql(\"Light\");",
+									"    pm.expect(jsonData.action).to.eql(\"ON\");",
+									"    pm.expect(jsonData).to.have.property('fullTime');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"device\": \"Light\",\n  \"action\": \"ON\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/devices/control",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"devices",
+								"control"
+							]
+						},
+						"description": "Gửi lệnh MQTT bật đèn và ghi nhận lịch sử vào CSDL"
+					},
+					"response": []
+				},
+				{
+					"name": "POST - Tắt quạt (Fan OFF)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code là 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Phản hồi ghi nhận hành động tắt quạt\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.device).to.eql(\"Fan\");",
+									"    pm.expect(jsonData.action).to.eql(\"OFF\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"device\": \"Fan\",\n  \"action\": \"OFF\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/devices/control",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"devices",
+								"control"
+							]
+						},
+						"description": "Gửi lệnh MQTT tắt quạt"
+					},
+					"response": []
+				},
+				{
+					"name": "GET - Lịch sử thao tác thiết bị (Phân trang)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code là 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Phân trang trả về currentPage và mảng data\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('data');",
+									"    pm.expect(jsonData).to.have.property('currentPage');",
+									"    pm.expect(jsonData.data).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/devices/history?page=1&limit=10&sort=newest",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"devices",
+								"history"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "8"
+								},
+								{
+									"key": "sort",
+									"value": "newest"
+								}
+							]
+						},
+						"description": "Lấy danh sách lịch sử bật/tắt thiết bị"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "2. Cảm Biến (Sensors)",
+			"item": [
+				{
+					"name": "GET - Dữ liệu bảng cảm biến (Phân trang)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code là 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Dữ liệu cảm biến có cấu trúc data, total, totalPages\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('data');",
+									"    pm.expect(jsonData).to.have.property('total');",
+									"    pm.expect(jsonData.data).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/sensors/history?page=1&limit=10&sort=newest",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"sensors",
+								"history"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "8"
+								},
+								{
+									"key": "sort",
+									"value": "newest"
+								}
+							]
+						},
+						"description": "Lấy dữ liệu làm phẳng cảm biến cho DataSensorPage"
+					},
+					"response": []
+				},
+				{
+					"name": "GET - 15 Điểm đo vẽ biểu đồ LiveChart",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code là 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Dữ liệu biểu đồ là mảng chứa các mốc thời gian\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"    if (jsonData.length > 0) {",
+									"        pm.expect(jsonData[0]).to.have.property('time');",
+									"        pm.expect(jsonData[0]).to.have.property('temp');",
+									"        pm.expect(jsonData[0]).to.have.property('humidity');",
+									"        pm.expect(jsonData[0]).to.have.property('light');",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/sensors/latest?limit=15",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"sensors",
+								"latest"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "15"
+								}
+							]
+						},
+						"description": "Lấy 15 điểm đo mới nhất phục vụ vẽ biểu đồ thời gian thực"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "3. Hồ Sơ (Profile)",
+			"item": [
+				{
+					"name": "GET - Thông tin sinh viên",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code là 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Thông tin tác giả chính xác\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.name).to.eql(\"Đào Trung Hiếu\");",
+									"    pm.expect(jsonData.studentId).to.eql(\"B23DCCN298\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/profile",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"profile"
+							]
+						},
+						"description": "Lấy thông tin sinh viên thực hiện bài tập lớn"
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

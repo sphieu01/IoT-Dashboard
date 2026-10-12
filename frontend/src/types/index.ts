@@ -14,13 +14,16 @@ export interface SensorReading {
 export type DeviceAction = 'ON' | 'OFF'
 export type DeviceStatus = 'ON' | 'OFF' | 'PENDING'
 
-export interface HistoryLog {
+export interface DeviceHistory {
   id: number
   device: string
   action: DeviceAction
   status: DeviceStatus
   fullTime: string
 }
+
+// Alias tương thích ngược
+export type HistoryLog = DeviceHistory
 
 export interface DeviceStates {
   light: boolean

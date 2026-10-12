@@ -18,23 +18,21 @@ public class SensorController {
         this.sensorService = sensorService;
     }
 
-    // 1. Lấy dữ liệu cảm biến (hỗ trợ phân trang, tìm kiếm, lọc) - Hỗ trợ cả /api/sensors và /api/sensors/history
-    @GetMapping({"", "/history"})
+    // 1. Lấy dữ liệu cảm biến (hỗ trợ phân trang, tìm kiếm, lọc)
+    @GetMapping("/history")
     public ResponseEntity<?> getSensors(
             @RequestParam(required = false, defaultValue = "all") String searchType,
             @RequestParam(required = false, defaultValue = "") String query,
             @RequestParam(required = false, defaultValue = "newest") String sort,
             @RequestParam(required = false, defaultValue = "1") int page,
-            @RequestParam(required = false, defaultValue = "10") int limit,
-            @RequestParam(required = false) Integer perPage
+            @RequestParam(required = false, defaultValue = "8") int limit
     ) {
-        int pageSize = perPage != null ? perPage : limit;
-        Map<String, Object> result = sensorService.getFlatSensors(searchType, query, sort, page, pageSize);
+        Map<String, Object> result = sensorService.getFlatSensors(searchType, query, sort, page, limit);
         return ResponseEntity.ok(result);
     }
 
     // 2. Lấy 15 điểm đo mới nhất cho biểu đồ thời gian thực (LiveChart)
-    @GetMapping({"/latest", "/chart"})
+    @GetMapping("/latest")
     public ResponseEntity<List<LiveChartPointDto>> getLatestPoints(
             @RequestParam(required = false, defaultValue = "15") int limit
     ) {

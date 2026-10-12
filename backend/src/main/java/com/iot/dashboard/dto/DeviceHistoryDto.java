@@ -1,15 +1,16 @@
 package com.iot.dashboard.dto;
 
-public class HistoryLogDto {
+public class DeviceHistoryDto {
     private Long id;
     private String device;
     private String action;
     private String status; // ON, OFF, PENDING
     private String fullTime;
 
-    public HistoryLogDto() {}
+    public DeviceHistoryDto() {
+    }
 
-    public HistoryLogDto(Long id, String device, String action, String status, String fullTime) {
+    public DeviceHistoryDto(Long id, String device, String action, String status, String fullTime) {
         this.id = id;
         this.device = device;
         this.action = action;

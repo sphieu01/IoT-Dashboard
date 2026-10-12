@@ -1,6 +1,6 @@
 package com.iot.dashboard.service;
 
-import com.iot.dashboard.dto.HistoryLogDto;
+import com.iot.dashboard.dto.DeviceHistoryDto;
 import com.iot.dashboard.entity.DeviceHistory;
 import com.iot.dashboard.repository.DeviceHistoryRepository;
 import org.springframework.data.domain.Sort;
@@ -11,21 +11,21 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-public class HistoryService {
+public class DeviceHistoryService {
 
     private final DeviceHistoryRepository historyRepository;
     private final DateTimeFormatter fullTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss dd/MM/yyyy");
 
-    public HistoryService(DeviceHistoryRepository historyRepository) {
+    public DeviceHistoryService(DeviceHistoryRepository historyRepository) {
         this.historyRepository = historyRepository;
     }
 
     // Lấy toàn bộ lịch sử bật tắt cho HistoryPage
-    public List<HistoryLogDto> getAllHistoryLogs() {
+    public List<DeviceHistoryDto> getAllHistoryLogs() {
         List<DeviceHistory> list = historyRepository.findAllByOrderByExecutedAtDesc();
-        List<HistoryLogDto> result = new ArrayList<>();
+        List<DeviceHistoryDto> result = new ArrayList<>();
         for (DeviceHistory h : list) {
-            result.add(new HistoryLogDto(
+            result.add(new DeviceHistoryDto(
                     h.getId(),
                     h.getDevice() != null ? h.getDevice().getName() : "",
                     h.getAction(),
@@ -44,7 +44,7 @@ public class HistoryService {
 
         List<DeviceHistory> list = historyRepository.findAll(sortOrder);
         
-        List<HistoryLogDto> mapped = list.stream().map(h -> new HistoryLogDto(
+        List<DeviceHistoryDto> mapped = list.stream().map(h -> new DeviceHistoryDto(
                 h.getId(),
                 h.getDevice() != null ? h.getDevice().getName() : "",
                 h.getAction(),
@@ -53,7 +53,7 @@ public class HistoryService {
         )).collect(Collectors.toList());
 
         // Tìm kiếm theo query
-        List<HistoryLogDto> filtered = mapped.stream().filter(item -> {
+        List<DeviceHistoryDto> filtered = mapped.stream().filter(item -> {
             if (query == null || query.trim().isEmpty()) return true;
             String q = query.trim().toLowerCase();
             return item.getDevice().toLowerCase().contains(q) ||
@@ -67,7 +67,7 @@ public class HistoryService {
         int fromIndex = Math.min((page - 1) * perPage, total);
         int toIndex = Math.min(fromIndex + perPage, total);
 
-        List<HistoryLogDto> pagedData = filtered.subList(fromIndex, toIndex);
+        List<DeviceHistoryDto> pagedData = filtered.subList(fromIndex, toIndex);
 
         Map<String, Object> response = new HashMap<>();
         response.put("data", pagedData);
