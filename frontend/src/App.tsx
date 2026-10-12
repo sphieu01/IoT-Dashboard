@@ -5,7 +5,7 @@ import DataSensorPage from './pages/DataSensorPage'
 import HistoryPage from './pages/HistoryPage'
 import ProfilePage from './pages/ProfilePage'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { SensorReading, HistoryLog, DeviceStates } from './types'
+import { SensorReading, DeviceHistory, DeviceStates } from './types'
 import { iotApiService, formatFullTime } from './services/api'
 
 export default function App() {
@@ -22,7 +22,7 @@ export default function App() {
   const [devices, setDevices] = useState<DeviceStates>({ light: false, fan: false })
   const [pendingDevices, setPendingDevices] = useState<Record<string, boolean>>({})
   const [sensorRows, setSensorRows] = useState<SensorReading[]>([])
-  const [historyLogs, setHistoryLogs] = useState<HistoryLog[]>([])
+  const [historyLogs, setHistoryLogs] = useState<DeviceHistory[]>([])
 
   // Đồng bộ dữ liệu thực tế từ Spring Boot Backend & lắng nghe WebSocket Realtime
   useEffect(() => {
@@ -45,7 +45,7 @@ export default function App() {
     })
 
     // 4. Lấy lịch sử bật tắt từ DB
-    iotApiService.getHistoryLogs().then((res) => {
+    iotApiService.getDeviceHistoryLogs().then((res) => {
       if (res && res.length > 0) setHistoryLogs(res)
     })
 

@@ -1,9 +1,9 @@
 import React, { useState } from 'react'
 import { Pagination, OnOffBadge, selectCls, inputCls, thCls, tdCls } from '../components/common'
-import { HistoryLog } from '../types'
+import { DeviceHistory } from '../types'
 
 interface HistoryPageProps {
-  logs: HistoryLog[]
+  logs: DeviceHistory[]
 }
 
 export default function HistoryPage({ logs }: HistoryPageProps) {

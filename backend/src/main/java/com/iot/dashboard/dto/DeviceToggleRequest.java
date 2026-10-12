@@ -5,16 +5,18 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class DeviceToggleRequest {
 
-    @JsonAlias({"deviceName", "device_name"})
+    @JsonAlias({ "deviceName", "device_name" }) // 1. Cho phép client gửi JSON dạng {"deviceName": "Light"} hoặc
+                                                // {"device_name": "Light"}
     private String device; // "Light" | "Fan"
 
     private String action; // "ON" | "OFF"
 
-    @JsonProperty("device_id")
-    @JsonAlias({"deviceId"})
+    @JsonProperty("device_id") // 2. Client có thể gửi {"device_id": 1} hoặc {"deviceId": 1}
+    @JsonAlias({ "deviceId" })
     private Integer deviceId;
 
-    public DeviceToggleRequest() {}
+    public DeviceToggleRequest() {
+    }
 
     public DeviceToggleRequest(String device, String action) {
         this.device = device;

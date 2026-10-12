@@ -133,11 +133,11 @@ npm run dev
 
 | Method | Endpoint | Chức năng |
 |---|---|---|
-| `GET` | `/api/sensors` | Lấy danh sách cảm biến phẳng (hỗ trợ tìm kiếm, lọc theo loại, sắp xếp, phân trang) |
+| `GET` | `/api/sensors/history` | Lấy danh sách cảm biến phẳng (hỗ trợ tìm kiếm, lọc theo loại, sắp xếp, phân trang) |
 | `GET` | `/api/sensors/latest` | Lấy 15 điểm đo mới nhất cho đồ thị LiveChart |
 | `GET` | `/api/devices/status` | Lấy trạng thái hiện tại của toàn bộ thiết bị (`light`, `fan`) |
-| `POST` | `/api/devices/toggle` | Gửi lệnh điều khiển bật/tắt thiết bị (`{"device":"Light","action":"ON"}`) |
-| `GET` | `/api/devices/logs` | Lấy toàn bộ lịch sử thao tác bật/tắt thiết bị |
+| `POST` | `/api/devices/control` | Gửi lệnh điều khiển bật/tắt thiết bị (`{"device":"Light","action":"ON"}`) |
+| `GET` | `/api/devices/history` | Lấy toàn bộ lịch sử thao tác bật/tắt thiết bị |
 | `GET` | `/api/profile` | Thông tin cá nhân sinh viên |
 | `WS` | `/ws` | WebSocket endpoint nhận dữ liệu telemetry và trạng thái ACK thời gian thực |
 

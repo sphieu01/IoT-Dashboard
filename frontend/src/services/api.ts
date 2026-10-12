@@ -1,4 +1,4 @@
-import { SensorReading, HistoryLog, DeviceStates } from '../types'
+import { SensorReading, DeviceHistory, HistoryLog, DeviceStates } from '../types'
 
 export function formatFullTime(d: Date): string {
   const hh = String(d.getHours()).padStart(2, '0')
@@ -50,7 +50,7 @@ export const iotApiService = {
   // 3. Lấy dữ liệu cảm biến cho DataSensorPage từ CSDL
   async getSensors(page = 1, limit = 100): Promise<SensorReading[] | null> {
     try {
-      const res = await fetch(`${API_BASE_URL}/sensors?page=${page}&limit=${limit}&sort=newest`)
+      const res = await fetch(`${API_BASE_URL}/sensors/history?page=${page}&limit=${limit}&sort=newest`)
       if (!res.ok) throw new Error('Failed to fetch sensors')
       const json = await res.json()
       if (Array.isArray(json)) return json
@@ -62,7 +62,7 @@ export const iotApiService = {
   },
 
   // 4. Lấy lịch sử bật tắt thiết bị
-  async getHistoryLogs(): Promise<HistoryLog[] | null> {
+  async getDeviceHistoryLogs(): Promise<DeviceHistory[] | null> {
     try {
       const res = await fetch(`${API_BASE_URL}/devices/history`)
       if (!res.ok) throw new Error('Failed to fetch history')
@@ -74,8 +74,12 @@ export const iotApiService = {
     }
   },
 
+  async getHistoryLogs(): Promise<DeviceHistory[] | null> {
+    return this.getDeviceHistoryLogs()
+  },
+
   // 5. Gửi lệnh bật/tắt thiết bị tới Backend (chuyển tiếp tới MQTT -> ESP32)
-  async toggleDevice(device: 'Light' | 'Fan', action: 'ON' | 'OFF'): Promise<HistoryLog | null> {
+  async toggleDevice(device: 'Light' | 'Fan', action: 'ON' | 'OFF'): Promise<DeviceHistory | null> {
     try {
       const res = await fetch(`${API_BASE_URL}/devices/control`, {
         method: 'POST',

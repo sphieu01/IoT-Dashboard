@@ -1,6 +1,6 @@
 package com.iot.dashboard.service;
 
-import com.iot.dashboard.dto.HistoryLogDto;
+import com.iot.dashboard.dto.DeviceHistoryDto;
 import com.iot.dashboard.entity.Device;
 import com.iot.dashboard.entity.DeviceHistory;
 import com.iot.dashboard.repository.DeviceHistoryRepository;
@@ -45,7 +45,7 @@ public class DeviceService {
 
     // Điều khiển bật tắt thiết bị từ Web
     @Transactional
-    public HistoryLogDto toggleDevice(String deviceName, String action) {
+    public DeviceHistoryDto toggleDevice(String deviceName, String action) {
         String devName = "Light".equalsIgnoreCase(deviceName) ? "Light" : "Fan";
         String targetAction = "ON".equalsIgnoreCase(action) ? "ON" : "OFF";
 
@@ -59,7 +59,7 @@ public class DeviceService {
         // 2. Gửi lệnh qua MQTT Broker tới ESP32
         mqttService.publishDeviceControl(devName, targetAction);
 
-        return new HistoryLogDto(
+        return new DeviceHistoryDto(
                 history.getId(),
                 device.getName(),
                 history.getAction(),
