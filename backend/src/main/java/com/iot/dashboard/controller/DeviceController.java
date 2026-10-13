@@ -41,17 +41,17 @@ public class DeviceController {
     // 3. Lấy lịch sử thao tác bật tắt
     @GetMapping("/history")
     public ResponseEntity<?> getDeviceLogs(
-            @RequestParam(required = false) String query,
+            @RequestParam(required = false, defaultValue = "all") String device,
+            @RequestParam(required = false, defaultValue = "all") String action,
+            @RequestParam(required = false, defaultValue = "all") String status,
+            @RequestParam(required = false, defaultValue = "") String query,
             @RequestParam(required = false, defaultValue = "newest") String sort,
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer limit
+            @RequestParam(required = false, defaultValue = "1") int page,
+            @RequestParam(required = false, defaultValue = "8") int limit
     ) {
-        if (page != null) {
-            int pageSize = (limit != null && limit > 0) ? limit : 8;
-            Map<String, Object> result = historyService.getFilteredHistoryLogs(query, sort, page, pageSize);
-            return ResponseEntity.ok(result);
-        }
-        List<DeviceHistoryDto> list = historyService.getAllHistoryLogs();
-        return ResponseEntity.ok(list);
+        int pageSize = Math.min(Math.max(limit, 1), 1000);
+        int safePage = Math.max(page, 1);
+        Map<String, Object> result = historyService.getFilteredHistoryLogs(device, action, status, query, sort, safePage, pageSize);
+        return ResponseEntity.ok(result);
     }
 }

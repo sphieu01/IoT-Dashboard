@@ -43,7 +43,7 @@ void setupMqttServer() {
   IPAddress localIP = WiFi.localIP();
 
   // Nhận diện theo tên SSID hoặc theo dải IP (172.x là Hotspot, 192.x là WiFi nhà)
-  if (connectedSSID == WIFI_1_SSID || localIP[0] == 172) {
+  if (localIP[0] == 172) {
     current_mqtt_server = MQTT_SERVER_1;
     Serial.println("[MẠNG] Đang kết nối Hotspot (" + String(WIFI_1_SSID) + ")");
   } else {
@@ -115,7 +115,7 @@ void setup() {
   
   // Đăng ký cả 2 mạng Wi-Fi vào danh sách tự động tìm kiếm (WiFiMulti)
   wifiMulti.addAP(WIFI_1_SSID, WIFI_1_PASS);
-  wifiMulti.addAP(WIFI_2_SSID, WIFI_2_PASS);
+  // wifiMulti.addAP(WIFI_2_SSID, WIFI_2_PASS);
 
   Serial.println("\nĐang quét và kết nối Wi-Fi (Hotspot hoặc WiFi nhà)...");
   while (wifiMulti.run() != WL_CONNECTED) {

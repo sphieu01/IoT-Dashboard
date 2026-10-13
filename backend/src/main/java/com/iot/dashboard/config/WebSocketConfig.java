@@ -6,7 +6,7 @@ import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
 
 @Configuration
-@EnableWebSocket
+@EnableWebSocket // bật tính năng websocket
 public class WebSocketConfig implements WebSocketConfigurer {
 
     private final TelemetryWebSocketHandler webSocketHandler;
@@ -17,7 +17,8 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(webSocketHandler, "/ws", "/ws/telemetry")
+        registry.addHandler(webSocketHandler, "/ws", "/ws/telemetry") // Đăng ký endpoint URL để Frontend cắm kết nối
+                                                                      // vào: /ws hoặc /ws/telemetry
                 .setAllowedOriginPatterns("*");
     }
 }

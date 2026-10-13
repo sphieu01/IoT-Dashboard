@@ -64,11 +64,10 @@ public class DeviceService {
                 device.getName(),
                 history.getAction(),
                 history.getStatus(),
-                history.getExecutedAt().format(fullTimeFormatter)
-        );
+                history.getExecutedAt().format(fullTimeFormatter));
     }
 
-    // Xử lý khi ESP32 gửi phản hồi ACK qua topic 'device/status'
+    // Xử lý xác nhận từ ESP32 qua topic 'device/status'
     @Transactional
     public void handleDeviceAck(String deviceName, String status) {
         String devName = "Light".equalsIgnoreCase(deviceName) ? "Light" : "Fan";
@@ -80,10 +79,11 @@ public class DeviceService {
         device.setCurrentStatus(stateUpper);
         deviceRepository.save(device);
 
-        // Cập nhật log PENDING gần nhất của thiết bị thành trạng thái xác nhận (ON/OFF/SUCCESS)
+        // Cập nhật log PENDING gần nhất của thiết bị thành trạng thái xác nhận
+        // (ON/OFF/SUCCESS)
         Optional<DeviceHistory> pendingOpt = historyRepository
                 .findTop1ByDevice_NameIgnoreCaseAndStatusOrderByExecutedAtDesc(devName, "PENDING");
-        
+
         if (pendingOpt.isPresent()) {
             DeviceHistory h = pendingOpt.get();
             h.setStatus(stateUpper);

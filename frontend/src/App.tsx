@@ -39,8 +39,8 @@ export default function App() {
       }
     })
 
-    // 3. Lấy dữ liệu cảm biến ban đầu cho bảng DataSensorPage từ DB
-    iotApiService.getSensors(1, 100).then((res) => {
+    // 3. Lấy dữ liệu cảm biến ban đầu cho bảng DataSensorPage từ DB (tối đa 1000 bản ghi)
+    iotApiService.getSensors(1, 1000).then((res) => {
       if (res && res.length > 0) setSensorRows(res)
     })
 
@@ -78,11 +78,11 @@ export default function App() {
               const existingIds = new Set(prev.map((r) => r.id))
               const uniqueNew = incoming.filter((r) => !existingIds.has(r.id))
               if (uniqueNew.length === 0) return prev
-              return [...uniqueNew, ...prev].slice(0, 100)
+              return [...uniqueNew, ...prev].slice(0, 1000)
             })
           } else {
             // Gọi API lấy dữ liệu thật mới nhất từ MySQL để không sinh ID giả hay trùng lặp
-            iotApiService.getSensors(1, 100).then((res) => {
+            iotApiService.getSensors(1, 1000).then((res) => {
               if (res && res.length > 0) setSensorRows(res)
             })
           }

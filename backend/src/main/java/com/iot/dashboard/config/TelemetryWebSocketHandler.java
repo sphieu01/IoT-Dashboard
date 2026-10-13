@@ -12,25 +12,28 @@ import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
-@Component
-public class TelemetryWebSocketHandler extends TextWebSocketHandler {
+@Component // thành 1 Spring Bean
+public class TelemetryWebSocketHandler extends TextWebSocketHandler { // extends TextWebSocketHandler: chuỗi văn
+                                                                      // bản/JSON
 
     private static final Logger log = LoggerFactory.getLogger(TelemetryWebSocketHandler.class);
-    private final Set<WebSocketSession> sessions = new CopyOnWriteArraySet<>();
+    private final Set<WebSocketSession> sessions = new CopyOnWriteArraySet<>(); // Quản lý danh sách các trình duyệt
+                                                                                // đang mở kết nối
 
     @Override
-    public void afterConnectionEstablished(WebSocketSession session) {
+    public void afterConnectionEstablished(WebSocketSession session) { // Khi có người mở trang Web
         sessions.add(session);
         log.info("[WebSocket] New client connected: {}", session.getId());
     }
 
     @Override
-    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
+    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) { // Khi có người đóng Tab Web
         sessions.remove(session);
         log.info("[WebSocket] Client disconnected: {}", session.getId());
     }
 
-    public void broadcast(String message) {
+    public void broadcast(String message) { // Mỗi khi ESP32 bắn số đo mới lên MQTT, Backend gọi hàm này để "bắn loa" dữ
+                                            // liệu lập tức tới tất cả trình duyệt đang mở để vẽ lại biểu đồ.
         for (WebSocketSession session : sessions) {
             if (session.isOpen()) {
                 try {

@@ -27,7 +27,9 @@ public class SensorController {
             @RequestParam(required = false, defaultValue = "1") int page,
             @RequestParam(required = false, defaultValue = "8") int limit
     ) {
-        Map<String, Object> result = sensorService.getFlatSensors(searchType, query, sort, page, limit);
+        int safeLimit = Math.min(Math.max(limit, 1), 1000);
+        int safePage = Math.max(page, 1);
+        Map<String, Object> result = sensorService.getFlatSensors(searchType, query, sort, safePage, safeLimit);
         return ResponseEntity.ok(result);
     }
 

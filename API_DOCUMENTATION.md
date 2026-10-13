@@ -10,17 +10,17 @@
 
 ---
 
-## 📌 BẢNG TỔNG HỢP CÁC ENDPOINT (ĐÃ TINH GỌN)
+## 📌 BẢNG TỔNG HỢP CÁC ENDPOINT (100% SERVER-SIDE PAGINATION & FILTERING)
 
 | Nhóm | Phương thức | Endpoint | Mô tả |
 | :--- | :---: | :--- | :--- |
 | **Thiết bị** | `GET` | `/api/devices/status` | Lấy trạng thái ON/OFF hiện tại của đèn và quạt |
 | **Thiết bị** | `POST` | `/api/devices/control` | Bật/tắt thiết bị, gửi lệnh MQTT tới ESP32 và lưu lịch sử |
-| **Thiết bị** | `GET` | `/api/devices/history` | Lấy lịch sử bật/tắt thiết bị (hỗ trợ phân trang, lọc, tìm kiếm) |
-| **Cảm biến** | `GET` | `/api/sensors/history` | Lấy danh sách đo cảm biến phẳng (phân trang, lọc, tìm kiếm) |
+| **Thiết bị** | `GET` | `/api/devices/history` | Lấy lịch sử bật/tắt thiết bị (lọc đa trường: thiết bị, hành động, trạng thái, tìm thời gian, phân trang server-side) |
+| **Cảm biến** | `GET` | `/api/sensors/history` | Lấy danh sách đo cảm biến phẳng (phân trang, lọc theo cột, trần tối đa 1000 bản ghi) |
 | **Cảm biến** | `GET` | `/api/sensors/latest` | Lấy 15 điểm đo mới nhất vẽ đồ thị Live Chart |
 | **Hồ sơ** | `GET` | `/api/profile` | Lấy thông tin cá nhân sinh viên |
-| **Realtime** | `WS` | `/ws` | Kênh WebSocket truyền nhận dữ liệu thời gian thực |
+| **Realtime** | `WS` | `/ws` | Kênh WebSocket truyền nhận dữ liệu thời gian thực từ ESP32 |
 
 ---
 
@@ -88,88 +88,88 @@ curl -X POST http://localhost:5000/api/devices/control \
 
 | Tham số | Kiểu dữ liệu | Mặc định | Mô tả |
 | :--- | :---: | :---: | :--- |
-| `page` | Integer | (tùy chọn) | Trang hiện tại (bắt đầu từ `1`) |
-| `limit` | Integer | (tùy chọn) | Số bản ghi trên mỗi trang |
-| `query` | String | `""` | Từ khóa tìm kiếm theo thiết bị, hành động, thời gian |
+| `device` | String | `"all"` | Lọc theo thiết bị: `"all"`, `"Light"`, `"Fan"` |
+| `action` | String | `"all"` | Lọc theo hành động: `"all"`, `"ON"`, `"OFF"` |
+| `status` | String | `"all"` | Lọc theo trạng thái: `"all"`, `"ON"`, `"OFF"`, `"PENDING"`, `"SUCCESS"` |
+| `query` | String | `""` | **Chỉ tìm kiếm theo Thời gian (`fullTime`)** (ví dụ: `"23:50"`, `"12/10"`, `"2026"`) |
 | `sort` | String | `"newest"` | Thứ tự sắp xếp: `"newest"` (mới nhất) hoặc `"oldest"` (cũ nhất) |
+| `page` | Integer | `1` | Trang hiện tại (mặc định trang `1`, không bị mất lọc khi bỏ trống) |
+| `limit` | Integer | `8` | Số bản ghi mỗi trang (mặc định `8`, tối đa khống chế `1000`) |
 
-#### Ví dụ cURL (Có phân trang):
+> ⚠️ **Quy tắc hệ thống**: Dữ liệu lấy từ CSDL bị khống chế tối đa **1000 bản ghi mới nhất** để tối ưu hóa tài nguyên và ngăn chặn cạn kiệt bộ nhớ.
+
+#### Ví dụ cURL:
 ```bash
-curl -X GET "http://localhost:5000/api/devices/history?page=1&limit=5&sort=newest"
+curl -X GET "http://localhost:5000/api/devices/history?device=Light&action=ON&query=23:50&page=1&limit=8&sort=newest"
 ```
 
 #### Response thành công (200 OK):
 ```json
 {
   "currentPage": 1,
-  "totalPages": 3,
-  "total": 15,
+  "totalPages": 2,
+  "total": 12,
   "data": [
     {
-      "id": 15,
+      "id": 45,
       "device": "Light",
       "action": "ON",
-      "status": "ON",
-      "fullTime": "14:20:05 11/10/2026"
+      "status": "SUCCESS",
+      "fullTime": "23:50:18 12/10/2026"
     },
     {
-      "id": 14,
-      "device": "Fan",
-      "action": "OFF",
-      "status": "OFF",
-      "fullTime": "14:15:20 11/10/2026"
+      "id": 43,
+      "device": "Light",
+      "action": "ON",
+      "status": "SUCCESS",
+      "fullTime": "23:50:02 12/10/2026"
     }
   ]
 }
 ```
-*(Nếu không truyền `page` và `limit`, API sẽ trả về toàn bộ mảng `List<DeviceHistoryDto>`)*.
 
 ---
 
 ## II. NHÓM API DỮ LIỆU CẢM BIẾN (`/api/sensors`)
 
-### 1. Lấy dữ liệu cảm biến (Data Sensor Page)
+### 1. Lấy dữ liệu cảm biến (Data Sensor Page - Server-side Pagination)
 * **Endpoint:** `GET /api/sensors/history`
-* **Mục đích:** Lấy danh sách dữ liệu đo cảm biến được làm phẳng (phục vụ hiển thị bảng, tìm kiếm, lọc theo cột trên trang DataSensorPage).
+* **Mục đích:** Lấy danh sách số đo cảm biến phẳng. Tìm kiếm, lọc theo cột và phân trang 100% xử lý tại Backend.
 * **Query Parameters:**
 
 | Tham số | Kiểu dữ liệu | Mặc định | Mô tả |
 | :--- | :---: | :---: | :--- |
-| `page` | Integer | `1` | Số trang muốn xem |
-| `limit` | Integer | `8` | Số lượng bản ghi trên một trang (mặc định 8 dòng) |
 | `searchType` | String | `"all"` | Phạm vi tìm kiếm: `"all"`, `"temperature"`, `"humidity"`, `"light"`, `"time"` |
-| `query` | String | `""` | Giá trị tìm kiếm (ví dụ tìm giá trị `30`, thời gian `2026-10-11`...) |
+| `query` | String | `""` | Từ khóa tìm kiếm khớp với loại cảm biến đã chọn hoặc thời gian |
 | `sort` | String | `"newest"` | Sắp xếp: `"newest"` (mới nhất) hoặc `"oldest"` (cũ nhất) |
+| `page` | Integer | `1` | Số trang muốn xem (bắt đầu từ `1`) |
+| `limit` | Integer | `8` | Số bản ghi mỗi trang (mặc định `8`, tối đa khống chế `1000`) |
 
-#### Ví dụ cURL:
+> ⚠️ **Tối ưu hóa Database Query**: Backend sử dụng `PageRequest.of(0, 1000, sortOrder)` (`LIMIT 1000` ngay dưới MySQL), không kéo toàn bộ bảng hàng chục nghìn dòng lên RAM. Kết quả trả về và `total` luôn được giới hạn trần tối đa **1000 bản ghi**.
+
+#### Ví dụ cURL (Tìm nhiệt độ quanh mức 29 độ, trang 1):
 ```bash
-curl -X GET "http://localhost:5000/api/sensors/history?searchType=temperature&query=30&page=1&limit=3&sort=newest"
+curl -X GET "http://localhost:5000/api/sensors/history?searchType=temperature&query=29&page=1&limit=8&sort=newest"
 ```
 
 #### Response thành công (200 OK):
 ```json
 {
   "currentPage": 1,
-  "totalPages": 8,
-  "total": 24,
+  "totalPages": 5,
+  "total": 38,
   "data": [
     {
-      "id": 102,
+      "id": 14461,
       "sensorType": "Temperature",
-      "value": 30.5,
-      "fullTime": "2026-10-11 14:18:00"
+      "value": 29.5,
+      "fullTime": "2026-10-12 20:50:07"
     },
     {
-      "id": 99,
+      "id": 14458,
       "sensorType": "Temperature",
-      "value": 30.1,
-      "fullTime": "2026-10-11 14:17:30"
-    },
-    {
-      "id": 96,
-      "sensorType": "Temperature",
-      "value": 30.0,
-      "fullTime": "2026-10-11 14:17:00"
+      "value": 29.5,
+      "fullTime": "2026-10-12 20:50:05"
     }
   ]
 }
@@ -195,33 +195,33 @@ curl -X GET "http://localhost:5000/api/sensors/latest?limit=5"
 ```json
 [
   {
-    "time": "14:16:00",
-    "temp": 28.5,
-    "humidity": 65.0,
+    "time": "20:49:53",
+    "temp": 29.5,
+    "humidity": 68.0,
     "light": 420.0
   },
   {
-    "time": "14:16:30",
-    "temp": 28.7,
-    "humidity": 64.5,
+    "time": "20:49:57",
+    "temp": 29.5,
+    "humidity": 67.5,
     "light": 435.0
   },
   {
-    "time": "14:17:00",
-    "temp": 29.0,
-    "humidity": 64.0,
+    "time": "20:50:01",
+    "temp": 29.5,
+    "humidity": 67.0,
     "light": 450.0
   },
   {
-    "time": "14:17:30",
-    "temp": 29.2,
-    "humidity": 63.8,
+    "time": "20:50:05",
+    "temp": 29.5,
+    "humidity": 66.8,
     "light": 460.0
   },
   {
-    "time": "14:18:00",
+    "time": "20:50:07",
     "temp": 29.5,
-    "humidity": 63.5,
+    "humidity": 66.5,
     "light": 470.0
   }
 ]
@@ -257,19 +257,22 @@ curl -X GET http://localhost:5000/api/profile
 ## IV. KÊNH REALTIME WEBSOCKET (`/ws`)
 
 * **Mục đích:** Phát sóng (Broadcast) dữ liệu vi điều khiển ESP32 gửi lên tới máy tính người dùng theo thời gian thực (độ trễ ~ 0ms).
-* **URL kết nối:** `ws://localhost:5000/ws`
-* **Giao thức:** Standard WebSocket
+* **URL kết nối:** `ws://localhost:5000/ws` hoặc `ws://localhost:5000/ws/telemetry`
+* **Giao thức:** Standard WebSocket (`TextWebSocketHandler`)
 
-#### Dữ liệu nhận được từ Server:
+#### Định dạng gói tin SENSOR_UPDATE:
 ```json
 {
-  "type": "TELEMETRY",
-  "data": {
-    "temperature": 29.5,
-    "humidity": 63.5,
-    "light": 470.0,
-    "time": "14:18:00"
-  }
+  "type": "SENSOR_UPDATE",
+  "time": "20:50:07",
+  "temp": 29.5,
+  "humidity": 66.5,
+  "light": 470.0,
+  "records": [
+    { "id": 14461, "sensorType": "Temperature", "value": 29.5, "fullTime": "2026-10-12 20:50:07" },
+    { "id": 14462, "sensorType": "Humidity", "value": 66.5, "fullTime": "2026-10-12 20:50:07" },
+    { "id": 14463, "sensorType": "Light", "value": 470.0, "fullTime": "2026-10-12 20:50:07" }
+  ]
 }
 ```
 
@@ -283,4 +286,4 @@ curl -X GET http://localhost:5000/api/profile
    ```text
    http://localhost:5000/v3/api-docs
    ```
-4. Bấm **Import**. Postman sẽ tự động sinh ra một bộ **Collection** chứa chuẩn 6 REST API trên mà không hề bị trùng lặp!
+4. Bấm **Import**. Postman sẽ tự động sinh ra một bộ **Collection** chứa đầy đủ các REST API chuẩn hóa với các trường lọc và phân trang tự động.

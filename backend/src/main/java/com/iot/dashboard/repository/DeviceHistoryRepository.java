@@ -18,6 +18,12 @@ public interface DeviceHistoryRepository extends JpaRepository<DeviceHistory, Lo
 
     Page<DeviceHistory> findAllByOrderByExecutedAtAsc(Pageable pageable);
 
-    // Tìm bản ghi PENDING gần nhất của thiết bị để chuyển thành ON/OFF/SUCCESS khi ESP32 ACK
-    Optional<DeviceHistory> findTop1ByDevice_NameIgnoreCaseAndStatusOrderByExecutedAtDesc(String deviceName, String status);
+    // Tìm bản ghi PENDING gần nhất của thiết bị để chuyển thành ON/OFF/SUCCESS khi
+    // ESP32 ACK
+    Optional<DeviceHistory> findTop1ByDevice_NameIgnoreCaseAndStatusOrderByExecutedAtDesc(String deviceName,
+            String status);
+    // SELECT * FROM tbl_device_history h
+    // JOIN tbl_device d ON h.device_id = d.id
+    // WHERE LOWER(d.name) = LOWER(?) AND h.status = ?
+    // ORDER BY h.executed_at DESC LIMIT 1;
 }

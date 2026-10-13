@@ -6,6 +6,8 @@ import com.iot.dashboard.entity.DataSensor;
 import com.iot.dashboard.entity.Sensor;
 import com.iot.dashboard.repository.DataSensorRepository;
 import com.iot.dashboard.repository.SensorRepository;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,7 +35,8 @@ public class SensorService {
                 .orElseGet(() -> sensorRepository.save(new Sensor(name, type)));
     }
 
-    // Lưu bản ghi cảm biến mới nhận từ ESP32 vào tbl_datasensors (tách thành 3 bản ghi chuẩn hóa)
+    // Lưu bản ghi cảm biến mới nhận từ ESP32 vào tbl_datasensors (tách thành 3 bản
+    // ghi chuẩn hóa)
     @Transactional
     public List<DataSensor> saveReading(Double temp, Double humidity, Double light) {
         LocalDateTime now = LocalDateTime.now();
@@ -49,16 +52,17 @@ public class SensorService {
         return dataSensorRepository.saveAll(Arrays.asList(dTemp, dHum, dLight));
     }
 
-    // Lấy danh sách điểm cho biểu đồ LiveChart (15 điểm mới nhất sắp xếp theo thời gian tăng dần)
+    // Lấy danh sách điểm cho biểu đồ LiveChart (15 điểm mới nhất sắp xếp theo thời
+    // gian tăng dần)
     public List<LiveChartPointDto> getLatestChartPoints(int limit) {
         // Mỗi chu kỳ đo gồm 3 bản ghi (temp, hum, light) -> lấy tối đa 45 bản ghi
         List<DataSensor> list = dataSensorRepository.findTop45ByOrderByMeasuredAtDesc();
 
         // Nhóm các bản ghi theo thời điểm đo (giữ thứ tự chèn)
         Map<String, double[]> grouped = new LinkedHashMap<>();
-        for (DataSensor d : list) {
+        for (DataSensor d : list) { // gom nhóm cùng thời gian
             String timeKey = d.getMeasuredAt().format(timeFormatter);
-            grouped.putIfAbsent(timeKey, new double[]{0.0, 0.0, 0.0}); // [temp, hum, light]
+            grouped.putIfAbsent(timeKey, new double[] { 0.0, 0.0, 0.0 }); // [temp, hum, light]
             double[] values = grouped.get(timeKey);
 
             String type = d.getSensor() != null ? d.getSensor().getType().toLowerCase() : "";
@@ -70,14 +74,15 @@ public class SensorService {
                 values[2] = d.getValue();
             }
         }
-
+        // chuẩn hóa
         List<LiveChartPointDto> result = new ArrayList<>();
         for (Map.Entry<String, double[]> entry : grouped.entrySet()) {
             double[] val = entry.getValue();
             result.add(new LiveChartPointDto(entry.getKey(), val[0], val[1], val[2]));
         }
 
-        // Đảo ngược lại để theo thứ tự thời gian từ cũ -> mới (trái sang phải trên biểu đồ)
+        // Đảo ngược lại để theo thứ tự thời gian từ cũ -> mới (trái sang phải trên biểu
+        // đồ)
         Collections.reverse(result);
 
         if (result.size() > limit) {
@@ -92,7 +97,10 @@ public class SensorService {
                 ? Sort.by(Sort.Order.asc("measuredAt"), Sort.Order.asc("id"))
                 : Sort.by(Sort.Order.desc("measuredAt"), Sort.Order.desc("id"));
 
-        List<DataSensor> allData = dataSensorRepository.findAll(sortOrder);
+        // Giới hạn cứng: Dù frontend yêu cầu thế nào, tối đa chỉ lấy 1000 bản ghi mới nhất từ DB
+        final int MAX_FETCH = 1000;
+        Pageable pageable = PageRequest.of(0, MAX_FETCH, sortOrder);
+        List<DataSensor> allData = dataSensorRepository.findAll(pageable).getContent();
 
         // Chuyển đổi DataSensor thành SensorFlatDto cho bảng trên Web
         List<SensorFlatDto> flatRows = new ArrayList<>();
@@ -112,13 +120,13 @@ public class SensorService {
                     d.getId(),
                     displaySensor,
                     (double) Math.round(d.getValue() * 10.0) / 10.0,
-                    fullTime
-            ));
+                    fullTime));
         }
 
         // Lọc theo searchType và query
         List<SensorFlatDto> filtered = flatRows.stream().filter(f -> {
-            if (query == null || query.trim().isEmpty()) return true;
+            if (query == null || query.trim().isEmpty())
+                return true;
             String q = query.trim().toLowerCase();
 
             if ("temperature".equalsIgnoreCase(searchType) || "temp".equalsIgnoreCase(searchType)) {
@@ -131,15 +139,22 @@ public class SensorService {
                 return f.getFullTime().toLowerCase().contains(q);
             } else {
                 return f.getSensorType().toLowerCase().contains(q) ||
-                       String.valueOf(f.getValue()).contains(q) ||
-                       f.getFullTime().toLowerCase().contains(q);
+                        String.valueOf(f.getValue()).contains(q) ||
+                        f.getFullTime().toLowerCase().contains(q);
             }
         }).collect(Collectors.toList());
 
+        // Giới hạn kết quả trả về tối đa 1000
+        if (filtered.size() > MAX_FETCH) {
+            filtered = filtered.subList(0, MAX_FETCH);
+        }
+
+        int pageSize = Math.min(Math.max(perPage, 1), MAX_FETCH);
         int total = filtered.size();
-        int totalPages = (int) Math.ceil((double) total / perPage);
-        int fromIndex = Math.min((page - 1) * perPage, total);
-        int toIndex = Math.min(fromIndex + perPage, total);
+        int totalPages = Math.max(1, (int) Math.ceil((double) total / pageSize));
+        int safePage = Math.min(Math.max(page, 1), totalPages);
+        int fromIndex = Math.min((safePage - 1) * pageSize, total);
+        int toIndex = Math.min(fromIndex + pageSize, total);
 
         List<SensorFlatDto> pagedData = filtered.subList(fromIndex, toIndex);
 
@@ -147,7 +162,7 @@ public class SensorService {
         response.put("data", pagedData);
         response.put("total", total);
         response.put("totalPages", totalPages);
-        response.put("currentPage", page);
+        response.put("currentPage", safePage);
 
         return response;
     }

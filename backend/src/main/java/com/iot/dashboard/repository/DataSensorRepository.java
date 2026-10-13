@@ -12,7 +12,8 @@ import java.util.List;
 public interface DataSensorRepository extends JpaRepository<DataSensor, Long> {
 
     // Lấy 45 bản ghi mới nhất (3 cảm biến x 15 chu kỳ = 15 điểm đồ thị)
-    List<DataSensor> findTop45ByOrderByMeasuredAtDesc();
+    List<DataSensor> findTop45ByOrderByMeasuredAtDesc(); // SELECT * FROM tbl_data_sensor ORDER BY measured_at DESC
+                                                         // LIMIT 45;
 
     Page<DataSensor> findAllByOrderByMeasuredAtDesc(Pageable pageable);
 

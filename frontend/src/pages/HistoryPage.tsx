@@ -1,12 +1,13 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Pagination, OnOffBadge, selectCls, inputCls, thCls, tdCls } from '../components/common'
 import { DeviceHistory } from '../types'
+import { iotApiService } from '../services/api'
 
 interface HistoryPageProps {
-  logs: DeviceHistory[]
+  logs?: DeviceHistory[]
 }
 
-export default function HistoryPage({ logs }: HistoryPageProps) {
+export default function HistoryPage({ logs = [] }: HistoryPageProps) {
   const [deviceFilter, setDeviceFilter] = useState('all')
   const [actionFilter, setActionFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -15,18 +16,52 @@ export default function HistoryPage({ logs }: HistoryPageProps) {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(8)
 
-  const filtered = logs.filter((l) => {
-    if (deviceFilter !== 'all' && l.device !== deviceFilter) return false
-    if (actionFilter !== 'all' && l.action !== actionFilter) return false
-    if (statusFilter !== 'all' && l.status !== statusFilter) return false
-    if (committedTimeQuery && !l.fullTime.toLowerCase().includes(committedTimeQuery.toLowerCase().trim()))
-      return false
-    return true
-  })
+  const [items, setItems] = useState<DeviceHistory[]>(logs)
+  const [total, setTotal] = useState<number>(0)
+  const [loading, setLoading] = useState<boolean>(false)
 
-  const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize)
-  const showFrom = filtered.length === 0 ? 0 : (page - 1) * pageSize + 1
-  const showTo = Math.min(page * pageSize, filtered.length)
+  // 100% Server-side Query & Pagination từ Backend (tối đa 1000 kết quả)
+  useEffect(() => {
+    let isMounted = true
+    setLoading(true)
+    iotApiService
+      .getDeviceHistoryLogsPaged({
+        device: deviceFilter,
+        action: actionFilter,
+        status: statusFilter,
+        query: committedTimeQuery,
+        page,
+        limit: pageSize,
+      })
+      .then((res) => {
+        if (!isMounted) return
+        setLoading(false)
+        if (res) {
+          setItems(res.data)
+          setTotal(res.total)
+        }
+      })
+      .catch(() => {
+        if (isMounted) setLoading(false)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [deviceFilter, actionFilter, statusFilter, committedTimeQuery, page, pageSize])
+
+  // Khi ở trang 1 và không có bộ lọc/tìm kiếm: tự động cập nhật Realtime khi có lịch sử mới
+  useEffect(() => {
+    if (page === 1 && deviceFilter === 'all' && actionFilter === 'all' && statusFilter === 'all' && !committedTimeQuery) {
+      if (logs && logs.length > 0) {
+        setItems(logs.slice(0, pageSize))
+        setTotal(logs.length)
+      }
+    }
+  }, [logs, page, deviceFilter, actionFilter, statusFilter, committedTimeQuery, pageSize])
+
+  const showFrom = total === 0 ? 0 : (page - 1) * pageSize + 1
+  const showTo = Math.min(page * pageSize, total)
 
   return (
     <div className="flex flex-col gap-5">
@@ -132,8 +167,7 @@ export default function HistoryPage({ logs }: HistoryPageProps) {
               </tr>
             </thead>
             <tbody>
-              {pageRows.map((l, i) => {
-                const mismatch = l.action !== l.status && l.status !== 'PENDING'
+              {items.map((l, i) => {
                 return (
                   <tr
                     key={l.id}
@@ -152,10 +186,10 @@ export default function HistoryPage({ logs }: HistoryPageProps) {
                   </tr>
                 )
               })}
-              {pageRows.length === 0 && (
+              {items.length === 0 && (
                 <tr>
                   <td colSpan={5} className="text-center py-12 text-[#64748b] text-sm font-mono">
-                    No history logs matched your filter.
+                    {loading ? 'Loading history logs...' : 'No history logs matched your filter.'}
                   </td>
                 </tr>
               )}
@@ -165,7 +199,7 @@ export default function HistoryPage({ logs }: HistoryPageProps) {
 
         <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-4 px-6 py-2.5 border-t border-[#1e2d42] shrink-0">
           <span className="text-xs font-mono text-[#64748b]">
-            Showing {filtered.length === 0 ? '0 of 0' : `${showFrom}-${showTo} of ${filtered.length}`} records
+            Showing {total === 0 ? '0 of 0' : `${showFrom}-${showTo} of ${total}`} records
           </span>
 
           <div className="flex items-center gap-2 text-xs font-mono text-[#64748b]">
@@ -188,7 +222,7 @@ export default function HistoryPage({ logs }: HistoryPageProps) {
             </div>
           </div>
 
-          <Pagination page={page} total={filtered.length} perPage={pageSize} onChange={setPage} />
+          <Pagination page={page} total={total} perPage={pageSize} onChange={setPage} />
         </div>
       </div>
     </div>

@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Pagination, selectCls, inputCls, thCls, tdCls } from '../components/common'
 import { C_LIGHT, C_HUMIDITY, C_TEMP } from '../services/mockData'
 import { SensorReading, SensorType } from '../types'
+import { iotApiService } from '../services/api'
 
 interface DataSensorPageProps {
   rows?: SensorReading[]
@@ -21,33 +22,51 @@ export default function DataSensorPage({ rows = [] }: DataSensorPageProps) {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(8)
 
-  // 1. Sắp xếp theo ID
-  const sorted = [...rows].sort((a, b) => (sort === 'newest' ? b.id - a.id : a.id - b.id))
+  const [items, setItems] = useState<SensorReading[]>(rows)
+  const [total, setTotal] = useState<number>(0)
+  const [loading, setLoading] = useState<boolean>(false)
 
-  // 2. Lọc theo tìm kiếm
-  const filtered = sorted.filter((f) => {
-    if (!committedQuery.trim()) return true
-    const q = committedQuery.trim().toLowerCase()
+  // 100% Server-side Query & Pagination từ Backend (tối đa 1000 kết quả)
+  useEffect(() => {
+    let isMounted = true
+    setLoading(true)
+    iotApiService
+      .getSensorsPaged({
+        page,
+        limit: pageSize,
+        searchType,
+        query: committedQuery,
+        sort,
+      })
+      .then((res) => {
+        if (!isMounted) return
+        setLoading(false)
+        if (res) {
+          setItems(res.data)
+          setTotal(res.total)
+        }
+      })
+      .catch(() => {
+        if (isMounted) setLoading(false)
+      })
 
-    if (searchType === 'all') {
-      return (
-        f.sensorType.toLowerCase().includes(q) ||
-        String(f.value).includes(q) ||
-        f.fullTime.toLowerCase().includes(q)
-      )
+    return () => {
+      isMounted = false
     }
-    if (searchType === 'light') return f.sensorType === 'Light' && String(f.value).includes(q)
-    if (searchType === 'humidity') return f.sensorType === 'Humidity' && String(f.value).includes(q)
-    if (searchType === 'temp') return f.sensorType === 'Temperature' && String(f.value).includes(q)
-    if (searchType === 'time') return f.fullTime.toLowerCase().includes(q)
+  }, [page, pageSize, sort, searchType, committedQuery])
 
-    return true
-  })
+  // Khi ở trang 1 và không có bộ lọc/tìm kiếm: tự động cập nhật Realtime khi có dữ liệu mới từ WebSocket
+  useEffect(() => {
+    if (page === 1 && sort === 'newest' && searchType === 'all' && !committedQuery) {
+      if (rows && rows.length > 0) {
+        setItems(rows.slice(0, pageSize))
+        setTotal(rows.length)
+      }
+    }
+  }, [rows, page, sort, searchType, committedQuery, pageSize])
 
-  // 3. Giới hạn chính xác: Chỉ lấy đúng số dòng theo pageSize (mặc định 8 dòng đầu ở page 1)
-  const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize)
-  const showFrom = filtered.length === 0 ? 0 : (page - 1) * pageSize + 1
-  const showTo = Math.min(page * pageSize, filtered.length)
+  const showFrom = total === 0 ? 0 : (page - 1) * pageSize + 1
+  const showTo = Math.min(page * pageSize, total)
 
   return (
     <div className="flex flex-col gap-5">
@@ -127,7 +146,7 @@ export default function DataSensorPage({ rows = [] }: DataSensorPageProps) {
               </tr>
             </thead>
             <tbody>
-              {pageRows.map((f, i) => {
+              {items.map((f, i) => {
                 const meta = SENSOR_META[f.sensorType] || { unit: '', color: '#fff' }
                 return (
                   <tr
@@ -143,10 +162,10 @@ export default function DataSensorPage({ rows = [] }: DataSensorPageProps) {
                   </tr>
                 )
               })}
-              {pageRows.length === 0 && (
+              {items.length === 0 && (
                 <tr>
                   <td colSpan={4} className="text-center py-12 text-[#64748b] text-sm font-mono">
-                    No sensor records matched your query.
+                    {loading ? 'Loading sensor records...' : 'No sensor records matched your query.'}
                   </td>
                 </tr>
               )}
@@ -157,7 +176,7 @@ export default function DataSensorPage({ rows = [] }: DataSensorPageProps) {
         {/* Pagination + count */}
         <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-4 px-6 py-2.5 border-t border-[#1e2d42] shrink-0">
           <span className="text-xs font-mono text-[#64748b]">
-            Showing {filtered.length === 0 ? '0 of 0' : `${showFrom}-${showTo} of ${filtered.length}`} records
+            Showing {total === 0 ? '0 of 0' : `${showFrom}-${showTo} of ${total}`} records
           </span>
 
           <div className="flex items-center gap-2 text-xs font-mono text-[#64748b]">
@@ -180,7 +199,7 @@ export default function DataSensorPage({ rows = [] }: DataSensorPageProps) {
             </div>
           </div>
 
-          <Pagination page={page} total={filtered.length} perPage={pageSize} onChange={setPage} />
+          <Pagination page={page} total={total} perPage={pageSize} onChange={setPage} />
         </div>
       </div>
     </div>

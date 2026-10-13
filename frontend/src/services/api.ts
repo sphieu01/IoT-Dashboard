@@ -18,6 +18,13 @@ export function shortTimeSec(d: Date): string {
   return `${hh}:${mm}:${ss}`
 }
 
+export interface PagedResponse<T> {
+  data: T[]
+  total: number
+  totalPages: number
+  currentPage: number
+}
+
 // API Service layer (Kết nối tới Spring Boot Backend và WebSocket Server)
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 const WS_BASE_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:5000/ws'
@@ -47,31 +54,69 @@ export const iotApiService = {
     }
   },
 
-  // 3. Lấy dữ liệu cảm biến cho DataSensorPage từ CSDL
-  async getSensors(page = 1, limit = 100): Promise<SensorReading[] | null> {
+  // 3. Lấy dữ liệu cảm biến cho DataSensorPage từ CSDL (Server-side Search & Pagination)
+  async getSensorsPaged(params: {
+    page?: number
+    limit?: number
+    searchType?: string
+    query?: string
+    sort?: string
+  }): Promise<PagedResponse<SensorReading> | null> {
     try {
-      const res = await fetch(`${API_BASE_URL}/sensors/history?page=${page}&limit=${limit}&sort=newest`)
+      const sp = new URLSearchParams()
+      if (params.page) sp.set('page', String(params.page))
+      if (params.limit) sp.set('limit', String(params.limit))
+      if (params.searchType) sp.set('searchType', params.searchType)
+      if (params.query !== undefined) sp.set('query', params.query)
+      if (params.sort) sp.set('sort', params.sort)
+
+      const res = await fetch(`${API_BASE_URL}/sensors/history?${sp.toString()}`)
       if (!res.ok) throw new Error('Failed to fetch sensors')
-      const json = await res.json()
-      if (Array.isArray(json)) return json
-      return json.data || null
+      return await res.json()
     } catch (e) {
       console.warn('[API] Khong the lay bang du lieu cam bien tu backend:', e)
       return null
     }
   },
 
-  // 4. Lấy lịch sử bật tắt thiết bị
-  async getDeviceHistoryLogs(): Promise<DeviceHistory[] | null> {
+  // 3b. Tương thích ngược
+  async getSensors(page = 1, limit = 1000): Promise<SensorReading[] | null> {
+    const res = await this.getSensorsPaged({ page, limit, sort: 'newest' })
+    return res ? res.data : null
+  },
+
+  // 4. Lấy lịch sử bật tắt thiết bị (Server-side Search & Pagination)
+  async getDeviceHistoryLogsPaged(params: {
+    device?: string
+    action?: string
+    status?: string
+    query?: string
+    sort?: string
+    page?: number
+    limit?: number
+  }): Promise<PagedResponse<DeviceHistory> | null> {
     try {
-      const res = await fetch(`${API_BASE_URL}/devices/history`)
+      const sp = new URLSearchParams()
+      if (params.device) sp.set('device', params.device)
+      if (params.action) sp.set('action', params.action)
+      if (params.status) sp.set('status', params.status)
+      if (params.query !== undefined) sp.set('query', params.query)
+      if (params.sort) sp.set('sort', params.sort)
+      if (params.page) sp.set('page', String(params.page))
+      if (params.limit) sp.set('limit', String(params.limit))
+
+      const res = await fetch(`${API_BASE_URL}/devices/history?${sp.toString()}`)
       if (!res.ok) throw new Error('Failed to fetch history')
-      const data = await res.json()
-      return Array.isArray(data) ? data : (data.data || null)
+      return await res.json()
     } catch (e) {
       console.warn('[API] Khong the lay lich su thiet bi tu backend:', e)
       return null
     }
+  },
+
+  async getDeviceHistoryLogs(): Promise<DeviceHistory[] | null> {
+    const res = await this.getDeviceHistoryLogsPaged({ page: 1, limit: 1000 })
+    return res ? res.data : null
   },
 
   async getHistoryLogs(): Promise<DeviceHistory[] | null> {

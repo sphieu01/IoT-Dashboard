@@ -74,10 +74,13 @@ public class MqttService implements MqttCallback {
         startWatchdog();
     }
 
+    // Nếu quá 5 giây mà không nhận được gói tin cảm biến nào từ ESP32 -> Đánh dấu
+    // ESP32 OFFLINE
     private void startWatchdog() {
         scheduler.scheduleAtFixedRate(() -> {
             try {
-                if (isEspConnected && lastSensorReceivedAt > 0 && (System.currentTimeMillis() - lastSensorReceivedAt > 5000)) {
+                if (isEspConnected && lastSensorReceivedAt > 0
+                        && (System.currentTimeMillis() - lastSensorReceivedAt > 5000)) {
                     isEspConnected = false;
                     log.warn("🔴 [ESP32 Watchdog] Quá 5s không nhận được telemetry -> Đánh dấu ESP32 OFFLINE");
                     webSocketHandler.broadcast("{\"type\":\"ESP_STATUS\",\"status\":\"OFFLINE\"}");
@@ -94,8 +97,9 @@ public class MqttService implements MqttCallback {
                 brokerUrl = brokerUrl.trim();
             }
             log.info("[MQTT] Đang kết nối tới MQTT Broker tại {}...", brokerUrl);
-            client = new MqttClient(brokerUrl, clientId + "-" + System.currentTimeMillis(), new org.eclipse.paho.client.mqttv3.persist.MemoryPersistence());
-            
+            client = new MqttClient(brokerUrl, clientId + "-" + System.currentTimeMillis(),
+                    new org.eclipse.paho.client.mqttv3.persist.MemoryPersistence());
+
             MqttConnectOptions options = new MqttConnectOptions();
             options.setCleanSession(true);
             options.setConnectionTimeout(5);
@@ -127,7 +131,7 @@ public class MqttService implements MqttCallback {
     public void publishDeviceControl(String deviceName, String action) {
         String ledKey = "Light".equalsIgnoreCase(deviceName) ? "led1" : "led2";
         String actStr = action.toLowerCase();
-        
+
         // Tạo payload JSON: {"led1":"on"} hoặc {"led2":"off"}
         String payload = String.format("{\"%s\":\"%s\"}", ledKey, actStr);
 
@@ -158,6 +162,7 @@ public class MqttService implements MqttCallback {
         log.warn("[MQTT] Mất kết nối tới Broker: {}", cause != null ? cause.getMessage() : "Unknown");
     }
 
+    // Xử lý gói tin nhận được
     @Override
     public void messageArrived(String topic, MqttMessage message) {
         String payload = new String(message.getPayload(), StandardCharsets.UTF_8);
@@ -179,12 +184,15 @@ public class MqttService implements MqttCallback {
                 Double rawLight = json.has("light") ? json.get("light").asDouble() : 0.0;
 
                 // Đảo chiều quang trở: ESP32 ADC 12-bit (0 - 4095).
-                // Mạch cầu phân áp khiến trời tối điện áp tăng (ADC cao), trời sáng điện áp giảm (ADC thấp).
-                // Đảo chiều 4095 - rawLight để: Chiếu đèn -> Lux tăng cao, Che tay -> Lux hạ xuống thấp.
+                // Mạch cầu phân áp khiến trời tối điện áp tăng (ADC cao), trời sáng điện áp
+                // giảm (ADC thấp).
+                // Đảo chiều 4095 - rawLight để: Chiếu đèn -> Lux tăng cao, Che tay -> Lux hạ
+                // xuống thấp.
                 Double light = Math.max(0.0, 4095.0 - rawLight);
 
                 // Lưu vào database và lấy ra danh sách bản ghi với ID tự tăng thật
-                java.util.List<com.iot.dashboard.entity.DataSensor> savedList = sensorService.saveReading(temp, humid, light);
+                java.util.List<com.iot.dashboard.entity.DataSensor> savedList = sensorService.saveReading(temp, humid,
+                        light);
 
                 com.iot.dashboard.entity.DataSensor savedTemp = savedList.get(0);
                 com.iot.dashboard.entity.DataSensor savedHum = savedList.get(1);
@@ -193,20 +201,20 @@ public class MqttService implements MqttCallback {
                 String fullTime = savedTemp.getMeasuredAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
                 String timeStr = savedTemp.getMeasuredAt().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
 
-                // Broadcast qua WebSocket tới Web Dashboard (bao gồm LiveChart và các bản ghi ID thật cho DataSensor)
+                // Broadcast qua WebSocket tới Web Dashboard (bao gồm LiveChart và các bản ghi
+                // ID thật cho DataSensor)
                 String wsMsg = String.format(
                         java.util.Locale.US,
                         "{\"type\":\"SENSOR_UPDATE\",\"time\":\"%s\",\"temp\":%.1f,\"humidity\":%.1f,\"light\":%.1f," +
-                        "\"records\":[" +
-                        "{\"id\":%d,\"sensorType\":\"Light\",\"value\":%.1f,\"fullTime\":\"%s\"}," +
-                        "{\"id\":%d,\"sensorType\":\"Humidity\",\"value\":%.1f,\"fullTime\":\"%s\"}," +
-                        "{\"id\":%d,\"sensorType\":\"Temperature\",\"value\":%.1f,\"fullTime\":\"%s\"}" +
-                        "]}",
+                                "\"records\":[" +
+                                "{\"id\":%d,\"sensorType\":\"Light\",\"value\":%.1f,\"fullTime\":\"%s\"}," +
+                                "{\"id\":%d,\"sensorType\":\"Humidity\",\"value\":%.1f,\"fullTime\":\"%s\"}," +
+                                "{\"id\":%d,\"sensorType\":\"Temperature\",\"value\":%.1f,\"fullTime\":\"%s\"}" +
+                                "]}",
                         timeStr, temp, humid, light,
                         savedLight.getId(), light, fullTime,
                         savedHum.getId(), humid, fullTime,
-                        savedTemp.getId(), temp, fullTime
-                );
+                        savedTemp.getId(), temp, fullTime);
                 webSocketHandler.broadcast(wsMsg);
             }
 
@@ -245,7 +253,8 @@ public class MqttService implements MqttCallback {
             if (client != null && client.isConnected()) {
                 client.disconnect();
             }
-        } catch (MqttException ignored) {}
+        } catch (MqttException ignored) {
+        }
         scheduler.shutdown();
     }
 }
