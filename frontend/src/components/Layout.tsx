@@ -15,8 +15,8 @@ export function NavItem({ label, to, active, icon }: NavItemProps) {
     <Link
       to={to}
       className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer flex items-center gap-3 ${active
-        ? 'bg-[#00d4a8]/15 text-[#00d4a8] font-semibold border-l-4 border-[#00d4a8]'
-        : 'text-[#94a3b8] hover:text-white hover:bg-[#1e2d42]/60'
+        ? 'bg-[#00d4a8]/10 text-[#00a884] font-semibold border-l-4 border-[#00d4a8]'
+        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
         }`}
     >
       {icon && <span>{icon}</span>}
@@ -29,7 +29,7 @@ interface LayoutProps {
   children: ReactNode
 }
 
-export default function Layout({ children }: LayoutProps) { // children =  tất cả những gì được nhét vào giữa thẻ <Layout> và </Layout> lúc sử dụng". ở đây là  <DashboardPage />
+export default function Layout({ children }: LayoutProps) {
   const location = useLocation()
   const pathname = location.pathname
 
@@ -39,11 +39,11 @@ export default function Layout({ children }: LayoutProps) { // children =  tất
   const isProfile = pathname === '/profile' || pathname === '/my-profile' || pathname === '/myprofile'
 
   return (
-    <div className="h-screen overflow-hidden bg-[#090d13] flex font-sans text-[#e2e8f0]">
+    <div className="h-screen overflow-hidden bg-slate-50 flex font-sans text-slate-800">
       {/* Sidebar */}
-      <aside className="w-56 shrink-0 bg-[#0a0e14] border-r border-[#1e2d42] flex flex-col py-6">
+      <aside className="w-56 shrink-0 bg-white border-r border-slate-200 flex flex-col py-6 shadow-sm">
         <div className="px-5 mb-8 flex items-center justify-center">
-          <div className="text-sm font-bold tracking-wide text-white">IOT CONTROL</div>
+          <div className="text-sm font-bold tracking-wide text-slate-900">IOT CONTROL</div>
         </div>
 
         <nav className="flex flex-col gap-1.5 px-3 flex-1">
@@ -70,16 +70,16 @@ export default function Layout({ children }: LayoutProps) { // children =  tất
         </nav>
 
         {/* User Info at the bottom-left */}
-        <div className="px-3 pt-4 border-t border-[#1e2d42]">
+        <div className="px-3 pt-4 border-t border-slate-200">
           <div className="flex items-center gap-3 px-3">
-            <div className="w-8 h-8 rounded-full overflow-hidden border border-[#1e2d42] shrink-0 bg-[#121c29]">
+            <div className="w-8 h-8 rounded-full overflow-hidden border border-slate-200 shrink-0 bg-slate-100">
               <img
                 src={avatarImg}
                 alt="Avatar"
                 className="w-full h-full object-cover"
               />
             </div>
-            <span className="text-sm font-medium text-white truncate">
+            <span className="text-sm font-medium text-slate-900 truncate">
               {USER_INFO.name}
             </span>
           </div>

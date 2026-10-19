@@ -20,17 +20,17 @@ export default function DeviceControl({
         const isDeviceOn = devices[d.key]
         const isPending = pendingDevices[d.key]
 
-        let borderColor = 'border-[#1e2d42]'
+        let borderColor = 'border-slate-200'
         if (isPending) {
-          borderColor = 'border-amber-500/50 '
+          borderColor = 'border-amber-400'
         } else if (isDeviceOn) {
-          borderColor = 'border-[#00d4a8]/50 '
+          borderColor = 'border-[#00d4a8]'
         }
 
         return (
           <div // border
             key={d.key}
-            className={`flex-1 bg-[#0f1720] border rounded-xl p-4 flex flex-col items-center justify-center gap-3 transition-all duration-300 shadow-md ${borderColor}`}
+            className={`flex-1 bg-white border rounded-xl p-4 flex flex-col items-center justify-center gap-3 transition-all duration-300 shadow-sm ${borderColor}`}
           >
             <div // icon
               className={`text-4xl select-none transition-all duration-300 ${isPending
@@ -44,7 +44,7 @@ export default function DeviceControl({
             </div>
 
             <div className="text-center">{/* text */}
-              <div className="text-sm font-semibold text-[#e2e8f0]">{d.label}</div>
+              <div className="text-sm font-semibold text-slate-800">{d.label}</div>
             </div>
 
             <Toggle // switch on/off

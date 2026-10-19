@@ -126,7 +126,7 @@ export default function DataSensorPage({ rows = [] }: DataSensorPageProps) {
               setCommittedQuery(query)
               setPage(1)
             }}
-            className="px-5 py-2 bg-[#1e2d42] hover:bg-[#00d4a8]/20 border border-[#1e2d42] hover:border-[#00d4a8]/50 text-[#94a3b8] hover:text-[#00d4a8] rounded-xl text-sm font-mono font-semibold transition-all duration-200 whitespace-nowrap cursor-pointer"
+            className="px-5 py-2 bg-slate-100 hover:bg-[#00d4a8]/15 border border-slate-200 hover:border-[#00d4a8] text-slate-700 hover:text-[#00a884] rounded-xl text-sm font-mono font-semibold transition-all duration-200 whitespace-nowrap cursor-pointer shadow-sm"
           >
             Search
           </button>
@@ -134,11 +134,11 @@ export default function DataSensorPage({ rows = [] }: DataSensorPageProps) {
       </div>
 
       {/* Sensor Data Table */}
-      <div className="bg-[#0f1720] border border-[#1e2d42] overflow-hidden rounded-xl shadow-lg">
+      <div className="bg-white border border-slate-200 overflow-hidden rounded-xl shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="sticky top-0">
-              <tr className="bg-[#121c29]">
+              <tr className="bg-slate-50 border-b border-slate-200">
                 <th className={thCls}>ID</th>
                 <th className={thCls}>Sensor Type</th>
                 <th className={thCls}>Value</th>
@@ -147,24 +147,24 @@ export default function DataSensorPage({ rows = [] }: DataSensorPageProps) {
             </thead>
             <tbody>
               {items.map((f, i) => {
-                const meta = SENSOR_META[f.sensorType] || { unit: '', color: '#fff' }
+                const meta = SENSOR_META[f.sensorType] || { unit: '', color: '#334155' }
                 return (
                   <tr
                     key={f.id}
-                    className={`border-b border-[#1e2d42]/50 transition-colors hover:bg-[#162031] ${i % 2 !== 0 ? 'bg-[#0a1020]/40' : ''}`}
+                    className={`border-b border-slate-100 transition-colors hover:bg-slate-50 ${i % 2 !== 0 ? 'bg-slate-50/40' : 'bg-white'}`}
                   >
-                    <td className={`${tdCls} text-[#94a3b8]`}>#{f.id}</td>
+                    <td className={`${tdCls} text-slate-500`}>#{f.id}</td>
                     <td className={tdCls} style={{ color: meta.color }}>{f.sensorType}</td>
                     <td className={`${tdCls} font-semibold`} style={{ color: meta.color }}>
                       {f.value} {meta.unit}
                     </td>
-                    <td className={`${tdCls} text-[#00d4a8]`}>{f.fullTime}</td>
+                    <td className={`${tdCls} text-[#00a884]`}>{f.fullTime}</td>
                   </tr>
                 )
               })}
               {items.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="text-center py-12 text-[#64748b] text-sm font-mono">
+                  <td colSpan={4} className="text-center py-12 text-slate-400 text-sm font-mono">
                     {loading ? 'Loading sensor records...' : 'No sensor records matched your query.'}
                   </td>
                 </tr>
@@ -174,12 +174,12 @@ export default function DataSensorPage({ rows = [] }: DataSensorPageProps) {
         </div>
 
         {/* Pagination + count */}
-        <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-4 px-6 py-2.5 border-t border-[#1e2d42] shrink-0">
-          <span className="text-xs font-mono text-[#64748b]">
+        <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-4 px-6 py-2.5 border-t border-slate-200 shrink-0">
+          <span className="text-xs font-mono text-slate-500">
             Showing {total === 0 ? '0 of 0' : `${showFrom}-${showTo} of ${total}`} records
           </span>
 
-          <div className="flex items-center gap-2 text-xs font-mono text-[#64748b]">
+          <div className="flex items-center gap-2 text-xs font-mono text-slate-500">
             <span>Rows per page:</span>
             <div className="relative">
               <select
@@ -188,14 +188,14 @@ export default function DataSensorPage({ rows = [] }: DataSensorPageProps) {
                   setPageSize(Number(e.target.value))
                   setPage(1)
                 }}
-                className="bg-[#090d13] border border-[#1e2d42] rounded-lg px-2.5 py-1 text-xs text-[#e2e8f0] font-mono focus:outline-none focus:border-[#00d4a8] transition-colors appearance-none pr-6 cursor-pointer"
+                className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-700 font-mono focus:outline-none focus:border-[#00d4a8] transition-colors appearance-none pr-6 cursor-pointer shadow-sm"
               >
                 <option value={8}>8</option>
                 <option value={10}>10</option>
                 <option value={20}>20</option>
                 <option value={50}>50</option>
               </select>
-              <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[#64748b] text-[10px]">▾</span>
+              <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]">▾</span>
             </div>
           </div>
 

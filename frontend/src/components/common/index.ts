@@ -5,13 +5,13 @@ export { default as SensorCard } from './SensorCard'
 
 // style
 export const selectCls = // hộp chọn select
-  'bg-[#090d13] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-[#e2e8f0] font-mono focus:outline-none focus:border-[#00d4a8] transition-colors appearance-none pr-7 cursor-pointer'
+  'bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 font-mono focus:outline-none focus:border-[#00d4a8] transition-colors appearance-none pr-7 cursor-pointer shadow-sm'
 
 export const inputCls = // input ở thanh tìm kiếm 
-  'bg-[#090d13] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-[#e2e8f0] font-mono placeholder-[#64748b] focus:outline-none focus:border-[#00d4a8] transition-colors flex-1'
+  'bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 font-mono placeholder-slate-400 focus:outline-none focus:border-[#00d4a8] transition-colors flex-1 shadow-sm'
 
 export const thCls = // tiêu đề của các cột trong bảng
-  'text-left px-6 h-11 text-xs font-bold text-[#e2e8f0] border-b border-[#1e2d42] align-middle'
+  'text-left px-6 h-11 text-xs font-bold text-slate-700 border-b border-slate-200 align-middle bg-slate-50'
 
 export const tdCls = 'px-6 h-11 text-xs font-mono align-middle' // các ô trong bảng
 

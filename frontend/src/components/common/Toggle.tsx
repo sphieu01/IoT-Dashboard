@@ -23,7 +23,7 @@ export default function Toggle({ on, onChange, size = 'sm' }: ToggleProps) { // 
       role="switch"
       aria-checked={on}
       onClick={onChange}
-      className={`relative inline-flex ${track} shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none cursor-pointer ${on ? 'bg-[#00d4a8]' : 'bg-[#1e2d42]'
+      className={`relative inline-flex ${track} shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none cursor-pointer ${on ? 'bg-[#00d4a8]' : 'bg-slate-300'
         }`}// ranh truot
     >
       <span // cham tron

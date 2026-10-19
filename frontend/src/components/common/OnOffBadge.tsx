@@ -9,11 +9,11 @@ export interface OnOffBadgeProps {
 export default function OnOffBadge({ value, dim }: OnOffBadgeProps) {
   let base = ''
   if (value === 'ON') {
-    base = 'bg-[#00d4a8]/15 text-[#00d4a8] border border-[#00d4a8]/20'
+    base = 'bg-[#00d4a8]/15 text-[#009e7c] border border-[#00d4a8]/30'
   } else if (value === 'OFF') {
-    base = 'bg-red-500/15 text-red-400 border border-red-500/20'
+    base = 'bg-red-50 text-red-600 border border-red-200'
   } else if (value === 'PENDING') {
-    base = 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+    base = 'bg-amber-50 text-amber-600 border border-amber-200'
   }
 
   return (
