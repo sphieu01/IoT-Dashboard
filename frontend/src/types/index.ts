@@ -41,8 +41,8 @@ export interface DeviceConfig {
 export interface ProfileLinkItem {
   label: string
   href: string
-  bg: string
-  icon: ReactNode // JSX: <svg/>, <img/>, <span/>...
+  bg?: string
+  icon?: ReactNode // JSX: <svg/>, <img/>, <span/>...
 }
 
 export interface UserProfileInfo {

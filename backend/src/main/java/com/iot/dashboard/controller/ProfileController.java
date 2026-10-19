@@ -17,8 +17,7 @@ public class ProfileController {
                 "B23DCCN298",
                 "D23CNPM02",
                 "Học viện Công nghệ Bưu chính Viễn thông (PTIT)",
-                "Software Engineer"
-        );
-        return ResponseEntity.ok(profile);
+                "Software Engineer");
+        return ResponseEntity.ok(profile); // ví dụ 200 OK, 400 Bad Request, 404 Not Found
     }
 }

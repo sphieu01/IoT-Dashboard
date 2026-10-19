@@ -97,57 +97,66 @@ public class SensorService {
                 ? Sort.by(Sort.Order.asc("measuredAt"), Sort.Order.asc("id"))
                 : Sort.by(Sort.Order.desc("measuredAt"), Sort.Order.desc("id"));
 
-        // Giới hạn cứng: Dù frontend yêu cầu thế nào, tối đa chỉ lấy 1000 bản ghi mới nhất từ DB
+        // Lấy toàn bộ từ DB theo thứ tự sắp xếp để lọc trước
+        List<DataSensor> allData = dataSensorRepository.findAll(sortOrder);
+
         final int MAX_FETCH = 1000;
-        Pageable pageable = PageRequest.of(0, MAX_FETCH, sortOrder);
-        List<DataSensor> allData = dataSensorRepository.findAll(pageable).getContent();
+        String q = (query != null) ? query.trim().toLowerCase() : "";
 
-        // Chuyển đổi DataSensor thành SensorFlatDto cho bảng trên Web
-        List<SensorFlatDto> flatRows = new ArrayList<>();
-        for (DataSensor d : allData) {
-            String fullTime = d.getMeasuredAt().format(fullTimeFormatter);
-            String displaySensor = "Temperature";
-            String type = d.getSensor() != null ? d.getSensor().getType().toLowerCase() : "";
-            if (type.contains("temp")) {
-                displaySensor = "Temperature";
-            } else if (type.contains("hum")) {
-                displaySensor = "Humidity";
-            } else if (type.contains("light")) {
-                displaySensor = "Light";
-            }
+        // 1. Lọc trước trên toàn bộ dữ liệu (Filter first)
+        List<SensorFlatDto> filtered = allData.stream()
+                .filter(d -> {
+                    String fullTime = d.getMeasuredAt().format(fullTimeFormatter);
+                    String displaySensor = "Temperature";
+                    String type = d.getSensor() != null ? d.getSensor().getType().toLowerCase() : "";
+                    if (type.contains("temp")) {
+                        displaySensor = "Temperature";
+                    } else if (type.contains("hum")) {
+                        displaySensor = "Humidity";
+                    } else if (type.contains("light")) {
+                        displaySensor = "Light";
+                    }
 
-            flatRows.add(new SensorFlatDto(
-                    d.getId(),
-                    displaySensor,
-                    (double) Math.round(d.getValue() * 10.0) / 10.0,
-                    fullTime));
-        }
+                    double roundedVal = (double) Math.round(d.getValue() * 10.0) / 10.0;
+                    String valStr = String.valueOf(roundedVal);
 
-        // Lọc theo searchType và query
-        List<SensorFlatDto> filtered = flatRows.stream().filter(f -> {
-            if (query == null || query.trim().isEmpty())
-                return true;
-            String q = query.trim().toLowerCase();
-
-            if ("temperature".equalsIgnoreCase(searchType) || "temp".equalsIgnoreCase(searchType)) {
-                return "temperature".equalsIgnoreCase(f.getSensorType()) && String.valueOf(f.getValue()).contains(q);
-            } else if ("humidity".equalsIgnoreCase(searchType) || "humid".equalsIgnoreCase(searchType)) {
-                return "humidity".equalsIgnoreCase(f.getSensorType()) && String.valueOf(f.getValue()).contains(q);
-            } else if ("light".equalsIgnoreCase(searchType)) {
-                return "light".equalsIgnoreCase(f.getSensorType()) && String.valueOf(f.getValue()).contains(q);
-            } else if ("time".equalsIgnoreCase(searchType)) {
-                return f.getFullTime().toLowerCase().contains(q);
-            } else {
-                return f.getSensorType().toLowerCase().contains(q) ||
-                        String.valueOf(f.getValue()).contains(q) ||
-                        f.getFullTime().toLowerCase().contains(q);
-            }
-        }).collect(Collectors.toList());
-
-        // Giới hạn kết quả trả về tối đa 1000
-        if (filtered.size() > MAX_FETCH) {
-            filtered = filtered.subList(0, MAX_FETCH);
-        }
+                    if ("temperature".equalsIgnoreCase(searchType) || "temp".equalsIgnoreCase(searchType)) {
+                        if (!"temperature".equalsIgnoreCase(displaySensor)) return false;
+                        return q.isEmpty() || valStr.contains(q);
+                    } else if ("humidity".equalsIgnoreCase(searchType) || "humid".equalsIgnoreCase(searchType)) {
+                        if (!"humidity".equalsIgnoreCase(displaySensor)) return false;
+                        return q.isEmpty() || valStr.contains(q);
+                    } else if ("light".equalsIgnoreCase(searchType)) {
+                        if (!"light".equalsIgnoreCase(displaySensor)) return false;
+                        return q.isEmpty() || valStr.contains(q);
+                    } else if ("time".equalsIgnoreCase(searchType)) {
+                        return q.isEmpty() || fullTime.toLowerCase().contains(q);
+                    } else { // "all"
+                        if (q.isEmpty()) return true;
+                        return displaySensor.toLowerCase().contains(q) ||
+                                valStr.contains(q) ||
+                                fullTime.toLowerCase().contains(q);
+                    }
+                })
+                .limit(MAX_FETCH) // 2. Lọc xong mới lấy 1000 dòng đầu tiên (Limit 1000 after filter)
+                .map(d -> {
+                    String fullTime = d.getMeasuredAt().format(fullTimeFormatter);
+                    String displaySensor = "Temperature";
+                    String type = d.getSensor() != null ? d.getSensor().getType().toLowerCase() : "";
+                    if (type.contains("temp")) {
+                        displaySensor = "Temperature";
+                    } else if (type.contains("hum")) {
+                        displaySensor = "Humidity";
+                    } else if (type.contains("light")) {
+                        displaySensor = "Light";
+                    }
+                    return new SensorFlatDto(
+                            d.getId(),
+                            displaySensor,
+                            (double) Math.round(d.getValue() * 10.0) / 10.0,
+                            fullTime);
+                })
+                .collect(Collectors.toList());
 
         int pageSize = Math.min(Math.max(perPage, 1), MAX_FETCH);
         int total = filtered.size();

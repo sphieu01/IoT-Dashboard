@@ -44,42 +44,42 @@ public class DeviceHistoryService {
                 ? Sort.by(Sort.Direction.ASC, "executedAt")
                 : Sort.by(Sort.Direction.DESC, "executedAt");
 
-        // Giới hạn cứng 1000 bản ghi từ DB
+        // Lấy tất cả từ DB theo thứ tự sắp xếp để lọc trước
+        List<DeviceHistory> list = historyRepository.findAll(sortOrder);
+
         final int MAX_FETCH = 1000;
-        Pageable pageable = PageRequest.of(0, MAX_FETCH, sortOrder);
-        List<DeviceHistory> list = historyRepository.findAll(pageable).getContent();
+        String q = (query != null) ? query.trim().toLowerCase() : "";
 
-        List<DeviceHistoryDto> mapped = list.stream().map(h -> new DeviceHistoryDto(
-                h.getId(),
-                h.getDevice() != null ? h.getDevice().getName() : "",
-                h.getAction(),
-                h.getStatus(),
-                h.getExecutedAt().format(fullTimeFormatter))).collect(Collectors.toList());
-
-        // Lọc theo device, action, status và query
-        List<DeviceHistoryDto> filtered = mapped.stream().filter(item -> {
-            if (device != null && !device.trim().isEmpty() && !"all".equalsIgnoreCase(device)) {
-                if (!device.equalsIgnoreCase(item.getDevice())) return false;
-            }
-            if (action != null && !action.trim().isEmpty() && !"all".equalsIgnoreCase(action)) {
-                if (!action.equalsIgnoreCase(item.getAction())) return false;
-            }
-            if (status != null && !status.trim().isEmpty() && !"all".equalsIgnoreCase(status)) {
-                if (!status.equalsIgnoreCase(item.getStatus())) return false;
-            }
-            // Thanh tìm kiếm chỉ tìm theo thời gian (fullTime)
-            if (query != null && !query.trim().isEmpty()) {
-                String q = query.trim().toLowerCase();
-                if (!item.getFullTime().toLowerCase().contains(q)) {
-                    return false;
-                }
-            }
-            return true;
-        }).collect(Collectors.toList());
-
-        if (filtered.size() > MAX_FETCH) {
-            filtered = filtered.subList(0, MAX_FETCH);
-        }
+        // 1. Lọc trước trên toàn bộ dữ liệu (Filter first)
+        List<DeviceHistoryDto> filtered = list.stream()
+                .filter(h -> {
+                    if (device != null && !device.trim().isEmpty() && !"all".equalsIgnoreCase(device)) {
+                        String devName = h.getDevice() != null ? h.getDevice().getName() : "";
+                        if (!device.equalsIgnoreCase(devName)) return false;
+                    }
+                    if (action != null && !action.trim().isEmpty() && !"all".equalsIgnoreCase(action)) {
+                        if (!action.equalsIgnoreCase(h.getAction())) return false;
+                    }
+                    if (status != null && !status.trim().isEmpty() && !"all".equalsIgnoreCase(status)) {
+                        if (!status.equalsIgnoreCase(h.getStatus())) return false;
+                    }
+                    // Thanh tìm kiếm chỉ tìm theo thời gian (fullTime)
+                    if (!q.isEmpty()) {
+                        String fullTimeStr = h.getExecutedAt().format(fullTimeFormatter);
+                        if (!fullTimeStr.toLowerCase().contains(q)) {
+                            return false;
+                        }
+                    }
+                    return true;
+                })
+                .limit(MAX_FETCH) // 2. Lọc xong mới lấy tối đa 1000 bản ghi đầu tiên (Limit 1000 after filter)
+                .map(h -> new DeviceHistoryDto(
+                        h.getId(),
+                        h.getDevice() != null ? h.getDevice().getName() : "",
+                        h.getAction(),
+                        h.getStatus(),
+                        h.getExecutedAt().format(fullTimeFormatter)))
+                .collect(Collectors.toList());
 
         int pageSize = Math.min(Math.max(perPage, 1), MAX_FETCH);
         int total = filtered.size();
