@@ -39,7 +39,8 @@ public class DeviceHistoryService {
     }
 
     // Lấy lịch sử có phân trang, tìm kiếm và lọc đa trường
-    public Map<String, Object> getFilteredHistoryLogs(String device, String action, String status, String query, String sort, int page, int perPage) {
+    public Map<String, Object> getFilteredHistoryLogs(String device, String action, String status, String query,
+            String sort, int page, int perPage) {
         Sort sortOrder = "oldest".equalsIgnoreCase(sort)
                 ? Sort.by(Sort.Direction.ASC, "executedAt")
                 : Sort.by(Sort.Direction.DESC, "executedAt");
@@ -55,13 +56,16 @@ public class DeviceHistoryService {
                 .filter(h -> {
                     if (device != null && !device.trim().isEmpty() && !"all".equalsIgnoreCase(device)) {
                         String devName = h.getDevice() != null ? h.getDevice().getName() : "";
-                        if (!device.equalsIgnoreCase(devName)) return false;
+                        if (!device.equalsIgnoreCase(devName))
+                            return false;
                     }
                     if (action != null && !action.trim().isEmpty() && !"all".equalsIgnoreCase(action)) {
-                        if (!action.equalsIgnoreCase(h.getAction())) return false;
+                        if (!action.equalsIgnoreCase(h.getAction()))
+                            return false;
                     }
                     if (status != null && !status.trim().isEmpty() && !"all".equalsIgnoreCase(status)) {
-                        if (!status.equalsIgnoreCase(h.getStatus())) return false;
+                        if (!status.equalsIgnoreCase(h.getStatus()))
+                            return false;
                     }
                     // Thanh tìm kiếm chỉ tìm theo thời gian (fullTime)
                     if (!q.isEmpty()) {
@@ -100,6 +104,7 @@ public class DeviceHistoryService {
     }
 
     // Overload tương thích ngược
+    // k dung den
     public Map<String, Object> getFilteredHistoryLogs(String query, String sort, int page, int perPage) {
         return getFilteredHistoryLogs(null, null, null, query, sort, page, perPage);
     }

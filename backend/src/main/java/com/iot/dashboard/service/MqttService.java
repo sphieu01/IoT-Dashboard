@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 public class MqttService implements MqttCallback {
 
     private static final Logger log = LoggerFactory.getLogger(MqttService.class);
-
+    // đi tìm trong application.properties, nếu k thấy thì gán giá trị bên dưới
     @Value("${mqtt.broker.url:tcp://127.0.0.1:1883}")
     private String brokerUrl;
 
@@ -51,16 +51,16 @@ public class MqttService implements MqttCallback {
     private final SensorService sensorService;
     private final DeviceService deviceService;
     private final TelemetryWebSocketHandler webSocketHandler;
-    private final ObjectMapper objectMapper = new ObjectMapper();
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
+    private final ObjectMapper objectMapper = new ObjectMapper(); // phân tích chuỗi JSON thành dữ liệu Java.
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2); // 2 cái hẹn giờ
 
     private MqttClient client;
     private boolean isConnected = false;
     private volatile long lastSensorReceivedAt = 0;
-    private volatile boolean isEspConnected = false;
+    private volatile boolean isEspConnected = false; //
 
     public MqttService(
-            @Lazy SensorService sensorService,
+            @Lazy SensorService sensorService, // @Lazy tránh gọi nhau, vòng lặp luẩn quẩn
             @Lazy DeviceService deviceService,
             TelemetryWebSocketHandler webSocketHandler) {
         this.sensorService = sensorService;
@@ -77,6 +77,7 @@ public class MqttService implements MqttCallback {
     // Nếu quá 5 giây mà không nhận được gói tin cảm biến nào từ ESP32 -> Đánh dấu
     // ESP32 OFFLINE
     private void startWatchdog() {
+        // lặp đi lặp lại một việc sau mỗi 1 giây.
         scheduler.scheduleAtFixedRate(() -> {
             try {
                 if (isEspConnected && lastSensorReceivedAt > 0
@@ -98,21 +99,22 @@ public class MqttService implements MqttCallback {
             }
             log.info("[MQTT] Đang kết nối tới MQTT Broker tại {}...", brokerUrl);
             client = new MqttClient(brokerUrl, clientId + "-" + System.currentTimeMillis(),
-                    new org.eclipse.paho.client.mqttv3.persist.MemoryPersistence());
+                    new org.eclipse.paho.client.mqttv3.persist.MemoryPersistence()); // clientId cộng thêm
+                                                                                     // currentTimeMillis() để đảm bảo
+                                                                                     // không bị trùng lặp.
 
             MqttConnectOptions options = new MqttConnectOptions();
             options.setCleanSession(true);
             options.setConnectionTimeout(5);
-            options.setKeepAliveInterval(60);
+            options.setKeepAliveInterval(60); // Cứ 60 giây gửi gói ping giữ kết nối
             options.setAutomaticReconnect(true);
-
             if (username != null && !username.isEmpty()) {
                 options.setUserName(username.trim());
                 options.setPassword(password.trim().toCharArray());
             }
 
-            client.setCallback(this);
-            client.connect(options);
+            client.setCallback(this); // Đăng ký: "Có tin mới thì gọi các hàm trong class này!"
+            client.connect(options); // Thực hiện kết nối
             isConnected = true;
 
             // Đăng ký nhận dữ liệu từ ESP32
@@ -120,6 +122,7 @@ public class MqttService implements MqttCallback {
             client.subscribe(topicStatus.trim());
 
             log.info("✅ [MQTT] Đã kết nối MQTT Broker thành công! Subscribed: [{}, {}]", topicSensor, topicStatus);
+            requestDeviceStatusCheck();
         } catch (Exception e) {
             isConnected = false;
             log.warn("⚠️ [MQTT] Chưa kết nối được Broker ({}) - {}", brokerUrl, e.getMessage());
@@ -127,9 +130,24 @@ public class MqttService implements MqttCallback {
         }
     }
 
+    // Gửi lệnh "status_check" để ESP32 báo trạng thái các thiết bị về server
+    public void requestDeviceStatusCheck() {
+        if (client != null && client.isConnected()) {
+            try {
+                String payload = "{\"action\":\"status_check\"}";
+                MqttMessage message = new MqttMessage(payload.getBytes(StandardCharsets.UTF_8));
+                message.setQos(1); // 1 : đảm bảo tin nhắn được gửi ( ít nhất 1 lần )
+                client.publish(topicControl, message);
+                log.info("[MQTT] Đã gửi yêu cầu kiểm tra trạng thái thiết bị tới [{}]: {}", topicControl, payload);
+            } catch (MqttException e) {
+                log.error("[MQTT] Gửi yêu cầu kiểm tra trạng thái thất bại: {}", e.getMessage());
+            }
+        }
+    }
+
     // Gửi lệnh điều khiển bật/tắt thiết bị qua topic 'device/control'
     public void publishDeviceControl(String deviceName, String action) {
-        String ledKey = "Light".equalsIgnoreCase(deviceName) ? "led1" : "led2";
+        String ledKey = "Light".equalsIgnoreCase(deviceName) ? "led1" : "led2"; // light => led1
         String actStr = action.toLowerCase();
 
         // Tạo payload JSON: {"led1":"on"} hoặc {"led2":"off"}
@@ -144,7 +162,7 @@ public class MqttService implements MqttCallback {
             } catch (MqttException e) {
                 log.error("[MQTT] Gửi lệnh thất bại: {}", e.getMessage());
             }
-        } else {
+        } else { // chế độ mô phỏng
             log.info("[MQTT - Offline] Gửi lệnh mô phỏng cho {}: {}", deviceName, payload);
             if (simulationEnabled) {
                 // Mô phỏng độ trễ phần cứng ACK sau 1.2s nếu broker chưa bật
@@ -163,6 +181,8 @@ public class MqttService implements MqttCallback {
     }
 
     // Xử lý gói tin nhận được
+    // Cứ khi nào có tin nhắn đến hộp thư đã đăng ký, hãy tự động kích hoạt hàm
+    // messageArrived(...)
     @Override
     public void messageArrived(String topic, MqttMessage message) {
         String payload = new String(message.getPayload(), StandardCharsets.UTF_8);
@@ -176,6 +196,8 @@ public class MqttService implements MqttCallback {
                     isEspConnected = true;
                     log.info("🟢 [ESP32 Watchdog] Đã nhận tín hiệu từ ESP32 -> Đánh dấu ESP32 ONLINE");
                     webSocketHandler.broadcast("{\"type\":\"ESP_STATUS\",\"status\":\"ONLINE\"}");
+                    // Yêu cầu ESP32 phản hồi trạng thái thiết bị để đồng bộ toggle với Web
+                    requestDeviceStatusCheck();
                 }
 
                 JsonNode json = objectMapper.readTree(payload);
@@ -184,10 +206,6 @@ public class MqttService implements MqttCallback {
                 Double rawLight = json.has("light") ? json.get("light").asDouble() : 0.0;
 
                 // Đảo chiều quang trở: ESP32 ADC 12-bit (0 - 4095).
-                // Mạch cầu phân áp khiến trời tối điện áp tăng (ADC cao), trời sáng điện áp
-                // giảm (ADC thấp).
-                // Đảo chiều 4095 - rawLight để: Chiếu đèn -> Lux tăng cao, Che tay -> Lux hạ
-                // xuống thấp.
                 Double light = Math.max(0.0, 4095.0 - rawLight);
 
                 // Lưu vào database và lấy ra danh sách bản ghi với ID tự tăng thật
@@ -215,6 +233,7 @@ public class MqttService implements MqttCallback {
                         savedLight.getId(), light, fullTime,
                         savedHum.getId(), humid, fullTime,
                         savedTemp.getId(), temp, fullTime);
+                // "bắn" ngay qua WebSocket lên màn hình Web mà k cần tải lại trang
                 webSocketHandler.broadcast(wsMsg);
             }
 

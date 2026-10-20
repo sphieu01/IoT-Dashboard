@@ -15,7 +15,7 @@ export function NavItem({ label, to, active, icon }: NavItemProps) {
     <Link
       to={to}
       className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer flex items-center gap-3 ${active
-        ? 'bg-[#00d4a8]/15 text-[#00d4a8] font-semibold border-l-4 border-[#00d4a8]'
+        ? 'bg-[#00d4a8]/15 text-[#00d4a8] font-semibold'
         : 'text-[#94a3b8] hover:text-white hover:bg-[#1e2d42]/60'
         }`}
     >

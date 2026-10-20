@@ -60,6 +60,16 @@ void setupMqttServer() {
   client.setCallback(callback);
 }
 
+// HÀM BÁO CÁO TRẠNG THÁI HIỆN TẠI CỦA 2 ĐÈN LÊN TOPIC device/status
+void publishDeviceStatus() {
+  String s1 = (digitalRead(LED1_PIN) == HIGH) ? "on" : "off";
+  String s2 = (digitalRead(LED2_PIN) == HIGH) ? "on" : "off";
+  String payload = "{\"led1\":\"" + s1 + "\",\"led2\":\"" + s2 + "\"}";
+  client.publish("device/status", payload.c_str());
+  Serial.print("-> Đã đồng bộ trạng thái thiết bị lên server: ");
+  Serial.println(payload);
+}
+
 // HÀM CALLBACK: XỬ LÝ LỆNH BẬT TẮT 2 ĐÈN ĐỘC LẬP
 void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print("Co lenh moi tu topic [");
@@ -76,7 +86,13 @@ void callback(char* topic, byte* payload, unsigned int length) {
   Serial.println(messageTemp);
 
   if (String(topic) == "device/control") {
-    
+    // --- XỬ LÝ LỆNH KIỂM TRA TRẠNG THÁI TỪ SERVER ---
+    if (messageTemp.indexOf("status") >= 0 || messageTemp.indexOf("check") >= 0) {
+      Serial.println("-> Nhận yêu cầu kiểm tra trạng thái từ Server!");
+      publishDeviceStatus();
+      return;
+    }
+
     // --- XỬ LÝ ĐÈN 1 ---
     if (messageTemp.indexOf("led1: on") >= 0 || messageTemp.indexOf("\"led1\":\"on\"") >= 0) {
       digitalWrite(LED1_PIN, HIGH);
@@ -145,6 +161,9 @@ void reconnect() {
     if (client.connect(clientId.c_str(), "admin", "123456")) {
       Serial.println("Thanh cong!");
       client.subscribe("device/control"); // Đăng ký nhận lệnh
+
+      // Đồng bộ trạng thái thực tế của 2 đèn lên server ngay khi kết nối lại
+      publishDeviceStatus();
     } else {
       Serial.print("That bai, ma loi = ");
       Serial.print(client.state());

@@ -58,14 +58,14 @@ export default function LiveChart({
   const getStatus = () => {
     if (!isConnected) {
       return {
-        text: 'Mất kết nối Server',
+        text: 'Disconnect Server',
         color: 'text-[#ef4444]',
         dot: 'bg-[#ef4444]',
       }
     }
     if (!isEspOnline) {
       return {
-        text: 'Mất kết nối ESP32',
+        text: 'Disconnect ESP32',
         color: 'text-[#ef4444]',
         dot: 'bg-[#ef4444]',
       }
@@ -94,12 +94,11 @@ export default function LiveChart({
       <div className="flex-1 min-h-[340px] flex flex-col justify-center">
         {!hasData ? (
           <div className="flex flex-col items-center justify-center text-[#64748b] gap-2.5 font-mono text-xs py-20 select-none">
-            <span className="text-3xl opacity-30">📊</span>
-            <span className="text-sm font-medium text-[#94a3b8]">Chưa có dữ liệu cảm biến</span>
+            <span className="text-sm font-medium text-[#94a3b8]">No sensor data</span>
             <span className="text-[11px] text-[#475569]">
               {!isConnected
-                ? 'Máy chủ chưa sẵn sàng hoặc mất kết nối'
-                : 'ESP32 đang ngoại tuyến hoặc đã ngắt nguồn. Tự động kết nối lại khi có tín hiệu...'}
+                ? 'Server is not ready or disconnected'
+                : 'ESP32 is offline or disconnected. Reconnecting automatically when a signal is received...'}
             </span>
           </div>
         ) : (
