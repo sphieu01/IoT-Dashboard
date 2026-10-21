@@ -139,7 +139,7 @@ export const iotApiService = {
     }
   },
 
-  // 6. Kết nối WebSocket để nhận dữ liệu Realtime từ ESP32
+  // 6. [WEBSOCKET] Giữ lại làm mẫu tham khảo (Hiện tại Frontend sử dụng REST API Polling theo yêu cầu)
   connectWebSocket(
     onMessage: (data: any) => void,
     onStatusChange?: (connected: boolean) => void

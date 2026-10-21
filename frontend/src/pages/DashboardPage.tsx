@@ -26,8 +26,8 @@ export default function DashboardPage({
   const hasData = isOnline && chartData && chartData.length > 0
   const latest = hasData ? chartData[chartData.length - 1] : null
 
-  const tempValue = isOnline && latest ? String(latest.temp) : '-'
-  const humidityValue = isOnline && latest ? String(latest.humidity) : '-'
+  const tempValue = isOnline && latest ? Number(latest.temp).toFixed(1) : '-'
+  const humidityValue = isOnline && latest ? Number(latest.humidity).toFixed(1) : '-'
   const lightValue = isOnline && latest ? String(Math.round(latest.light)) : '-'
 
   return (

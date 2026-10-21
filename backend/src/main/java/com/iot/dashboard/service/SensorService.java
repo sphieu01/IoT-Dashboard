@@ -45,9 +45,13 @@ public class SensorService {
         Sensor sHum = getOrCreateSensor("DHT11", "humidity");
         Sensor sLight = getOrCreateSensor("LDR", "light");
 
-        DataSensor dTemp = new DataSensor(sTemp, temp != null ? temp.floatValue() : 0.0f, now);
-        DataSensor dHum = new DataSensor(sHum, humidity != null ? humidity.floatValue() : 0.0f, now);
-        DataSensor dLight = new DataSensor(sLight, light != null ? light.floatValue() : 0.0f, now);
+        float roundedTemp = temp != null ? (float) (Math.round(temp * 10.0) / 10.0) : 0.0f;
+        float roundedHum = humidity != null ? (float) (Math.round(humidity * 10.0) / 10.0) : 0.0f;
+        float roundedLight = light != null ? (float) Math.round(light) : 0.0f;
+
+        DataSensor dTemp = new DataSensor(sTemp, roundedTemp, now);
+        DataSensor dHum = new DataSensor(sHum, roundedHum, now);
+        DataSensor dLight = new DataSensor(sLight, roundedLight, now);
 
         return dataSensorRepository.saveAll(Arrays.asList(dTemp, dHum, dLight));
     }
@@ -78,7 +82,10 @@ public class SensorService {
         List<LiveChartPointDto> result = new ArrayList<>();
         for (Map.Entry<String, double[]> entry : grouped.entrySet()) {
             double[] val = entry.getValue();
-            result.add(new LiveChartPointDto(entry.getKey(), val[0], val[1], val[2]));
+            double roundedTemp = (double) Math.round(val[0] * 10.0) / 10.0;
+            double roundedHum = (double) Math.round(val[1] * 10.0) / 10.0;
+            double roundedLight = (double) Math.round(val[2]);
+            result.add(new LiveChartPointDto(entry.getKey(), roundedTemp, roundedHum, roundedLight));
         }
 
         // Đảo ngược lại để theo thứ tự thời gian từ cũ -> mới (trái sang phải trên biểu

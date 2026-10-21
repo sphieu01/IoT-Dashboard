@@ -34,7 +34,13 @@ function ChartTooltip({
         <div key={p.name} className="flex items-center gap-2 mb-1">
           <span className="w-2 h-2 rounded-full" style={{ background: p.color }} />
           <span className="text-[#94a3b8]">{p.name}:</span>
-          <span className="text-white font-semibold">{p.value}</span>
+          <span className="text-white font-semibold">
+            {typeof p.value === 'number'
+              ? p.name.includes('Light')
+                ? Math.round(p.value)
+                : Number(p.value).toFixed(1)
+              : p.value}
+          </span>
         </div>
       ))}
     </div>

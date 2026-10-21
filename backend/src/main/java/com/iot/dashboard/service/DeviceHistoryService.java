@@ -103,9 +103,10 @@ public class DeviceHistoryService {
         return response;
     }
 
-    // Overload tương thích ngược
-    // k dung den
+    // Overload tương thích ngược (Tạm comment vì không dùng đến)
+    /*
     public Map<String, Object> getFilteredHistoryLogs(String query, String sort, int page, int perPage) {
         return getFilteredHistoryLogs(null, null, null, query, sort, page, perPage);
     }
+    */
 }

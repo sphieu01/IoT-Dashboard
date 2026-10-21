@@ -111,7 +111,6 @@ export default function DataSensorPage({ rows = [] }: DataSensorPageProps) {
         <div className="flex flex-1 gap-2">
           <input
             className={`${inputCls} flex-1`}
-            placeholder="Search value..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
