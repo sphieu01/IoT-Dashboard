@@ -17,14 +17,22 @@ const SENSOR_META: Record<SensorType, { unit: string; color: string }> = {
 export default function DataSensorPage({ rows = [] }: DataSensorPageProps) {
   const [sort, setSort] = useState<'newest' | 'oldest'>('newest')
   const [searchType, setSearchType] = useState<'all' | 'light' | 'humidity' | 'temp' | 'time'>('all')
+  const [committedSearchType, setCommittedSearchType] = useState<'all' | 'light' | 'humidity' | 'temp' | 'time'>('all')
   const [query, setQuery] = useState('')
   const [committedQuery, setCommittedQuery] = useState('')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(8)
+  const [reloadKey, setReloadKey] = useState(0)
 
-  const [items, setItems] = useState<SensorReading[]>(rows)
+  const [items, setItems] = useState<SensorReading[]>([])
   const [total, setTotal] = useState<number>(0)
-  const [loading, setLoading] = useState<boolean>(false)
+  const [loading, setLoading] = useState<boolean>(true)
+
+  const handleSearch = () => {
+    setCommittedSearchType(searchType)
+    setCommittedQuery(query.trim())
+    setPage(1)
+  }
 
   // 100% Server-side Query & Pagination từ Backend (tối đa 1000 kết quả)
   useEffect(() => {
@@ -34,7 +42,7 @@ export default function DataSensorPage({ rows = [] }: DataSensorPageProps) {
       .getSensorsPaged({
         page,
         limit: pageSize,
-        searchType,
+        searchType: committedSearchType,
         query: committedQuery,
         sort,
       })
@@ -53,17 +61,7 @@ export default function DataSensorPage({ rows = [] }: DataSensorPageProps) {
     return () => {
       isMounted = false
     }
-  }, [page, pageSize, sort, searchType, committedQuery])
-
-  // Khi ở trang 1 và không có bộ lọc/tìm kiếm: tự động cập nhật Realtime khi có dữ liệu mới từ WebSocket
-  useEffect(() => {
-    if (page === 1 && sort === 'newest' && searchType === 'all' && !committedQuery) {
-      if (rows && rows.length > 0) {
-        setItems(rows.slice(0, pageSize))
-        setTotal(rows.length)
-      }
-    }
-  }, [rows, page, sort, searchType, committedQuery, pageSize])
+  }, [page, pageSize, sort, committedSearchType, committedQuery, reloadKey])
 
   const showFrom = total === 0 ? 0 : (page - 1) * pageSize + 1
   const showTo = Math.min(page * pageSize, total)
@@ -94,11 +92,11 @@ export default function DataSensorPage({ rows = [] }: DataSensorPageProps) {
             value={searchType}
             onChange={(e) => {
               setSearchType(e.target.value as 'all' | 'light' | 'humidity' | 'temp' | 'time')
-              setPage(1)
+              // Chỉ thay đổi giá trị trong dropdown, đợi bấm nút Search mới lọc
             }}
             className={selectCls}
           >
-            <option value="all">All Sensors</option>
+            <option value="all">All</option>
             <option value="light">Light</option>
             <option value="humidity">Humidity</option>
             <option value="temp">Temperature</option>
@@ -115,19 +113,27 @@ export default function DataSensorPage({ rows = [] }: DataSensorPageProps) {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
-                setCommittedQuery(query)
-                setPage(1)
+                handleSearch()
               }
             }}
+            placeholder=""
           />
           <button
-            onClick={() => {
-              setCommittedQuery(query)
-              setPage(1)
-            }}
+            onClick={handleSearch}
             className="px-5 py-2 bg-[#1e2d42] hover:bg-[#00d4a8]/20 border border-[#1e2d42] hover:border-[#00d4a8]/50 text-[#94a3b8] hover:text-[#00d4a8] rounded-xl text-sm font-mono font-semibold transition-all duration-200 whitespace-nowrap cursor-pointer"
           >
             Search
+          </button>
+          <button
+            type="button"
+            onClick={() => setReloadKey((prev) => prev + 1)}
+            title="Tải lại dữ liệu (Reload)"
+            className="px-3.5 py-2 bg-[#1e2d42] hover:bg-[#334155] border border-[#1e2d42] text-[#94a3b8] hover:text-[#00d4a8] rounded-xl text-sm font-mono font-semibold transition-all duration-200 flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+          >
+            <svg className={`w-4 h-4 ${loading ? 'animate-spin text-[#00d4a8]' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span className="hidden sm:inline">Reload</span>
           </button>
         </div>
       </div>

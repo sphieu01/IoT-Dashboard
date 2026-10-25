@@ -27,9 +27,11 @@ export function NavItem({ label, to, active, icon }: NavItemProps) {
 
 interface LayoutProps {
   children: ReactNode
+  currentUser?: { username?: string; fullName?: string; role?: string } | null
+  onLogout?: () => void
 }
 
-export default function Layout({ children }: LayoutProps) { // children =  tất cả những gì được nhét vào giữa thẻ <Layout> và </Layout> lúc sử dụng". ở đây là  <DashboardPage />
+export default function Layout({ children, currentUser, onLogout }: LayoutProps) {
   const location = useLocation()
   const pathname = location.pathname
 
@@ -37,6 +39,8 @@ export default function Layout({ children }: LayoutProps) { // children =  tất
   const isDataSensor = pathname === '/datasensor' || pathname === '/data-sensor'
   const isHistory = pathname === '/history'
   const isProfile = pathname === '/profile' || pathname === '/my-profile' || pathname === '/myprofile'
+
+  const displayName = currentUser?.fullName || currentUser?.username || USER_INFO.name
 
   return (
     <div className="h-screen overflow-hidden bg-[#090d13] flex font-sans text-[#e2e8f0]">
@@ -69,19 +73,39 @@ export default function Layout({ children }: LayoutProps) { // children =  tất
           />
         </nav>
 
-        {/* User Info at the bottom-left */}
+        {/* User Info & Logout at the bottom-left */}
         <div className="px-3 pt-4 border-t border-[#1e2d42]">
-          <div className="flex items-center gap-3 px-3">
-            <div className="w-8 h-8 rounded-full overflow-hidden border border-[#1e2d42] shrink-0 bg-[#121c29]">
-              <img
-                src={avatarImg}
-                alt="Avatar"
-                className="w-full h-full object-cover"
-              />
+          <div className="flex items-center justify-between px-2 py-1.5 rounded-xl hover:bg-[#121c29]/50 transition-colors">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-full overflow-hidden border border-[#1e2d42] shrink-0 bg-[#121c29]">
+                <img
+                  src={avatarImg}
+                  alt="Avatar"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-xs font-semibold text-white truncate" title={displayName}>
+                  {displayName}
+                </span>
+                <span className="text-[10px] font-mono text-[#00d4a8]">
+                  {currentUser?.role || 'ADMIN'}
+                </span>
+              </div>
             </div>
-            <span className="text-sm font-medium text-white truncate">
-              {USER_INFO.name}
-            </span>
+
+            {onLogout && (
+              <button
+                type="button"
+                onClick={onLogout}
+                title="Đăng xuất"
+                className="p-1.5 text-[#64748b] hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer shrink-0 ml-1"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
       </aside>
@@ -93,4 +117,3 @@ export default function Layout({ children }: LayoutProps) { // children =  tất
     </div>
   )
 }
-

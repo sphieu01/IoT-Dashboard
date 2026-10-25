@@ -22,8 +22,7 @@ public interface DeviceHistoryRepository extends JpaRepository<DeviceHistory, Lo
     // ESP32 ACK
     Optional<DeviceHistory> findTop1ByDevice_NameIgnoreCaseAndStatusOrderByExecutedAtDesc(String deviceName,
             String status);
-    // SELECT * FROM tbl_device_history h
-    // JOIN tbl_device d ON h.device_id = d.id
-    // WHERE LOWER(d.name) = LOWER(?) AND h.status = ?
-    // ORDER BY h.executed_at DESC LIMIT 1;
+
+    // Tìm tất cả bản ghi có status (PENDING) trước thời điểm threshold để xử lý timeout 5s
+    List<DeviceHistory> findByStatusIgnoreCaseAndExecutedAtBefore(String status, java.time.LocalDateTime threshold);
 }

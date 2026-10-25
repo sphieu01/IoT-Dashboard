@@ -6,12 +6,15 @@ import com.iot.dashboard.entity.DeviceHistory;
 import com.iot.dashboard.repository.DeviceHistoryRepository;
 import com.iot.dashboard.repository.DeviceRepository;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class DeviceService {
@@ -55,9 +58,19 @@ public class DeviceService {
         // 1. Tạo log PENDING lưu vào database
         DeviceHistory history = new DeviceHistory(device, targetAction, "PENDING", LocalDateTime.now());
         history = historyRepository.save(history);
+        final Long historyId = history.getId();
 
         // 2. Gửi lệnh qua MQTT Broker tới ESP32
         mqttService.publishDeviceControl(devName, targetAction);
+
+        // 3. Sau 5 giây, nếu ESP32 không phản hồi (vẫn PENDING) thì tự động chuyển thành FAIL
+        CompletableFuture.delayedExecutor(5, TimeUnit.SECONDS).execute(() -> {
+            try {
+                expirePendingLog(historyId);
+            } catch (Exception e) {
+                System.err.println("[DeviceService] Lỗi khi xử lý timeout 5s cho history log #" + historyId + ": " + e.getMessage());
+            }
+        });
 
         return new DeviceHistoryDto(
                 history.getId(),
@@ -65,6 +78,35 @@ public class DeviceService {
                 history.getAction(),
                 history.getStatus(),
                 history.getExecutedAt().format(fullTimeFormatter));
+    }
+
+    // Hết thời gian chờ (5s) chuyển bản ghi PENDING sang FAIL
+    @Transactional
+    public void expirePendingLog(Long historyId) {
+        historyRepository.findById(historyId).ifPresent(h -> {
+            if ("PENDING".equalsIgnoreCase(h.getStatus())) {
+                h.setStatus("FAIL");
+                historyRepository.save(h);
+                System.out.println("⏱️ [DeviceService] Log #" + historyId + " (" + 
+                        (h.getDevice() != null ? h.getDevice().getName() : "Device") + " " + h.getAction() + 
+                        ") quá 5s không phản hồi -> Đã chuyển trạng thái sang FAIL");
+            }
+        });
+    }
+
+    // Tác vụ nền định kỳ quét các bản ghi PENDING đã quá 5 giây và cập nhật thành FAIL
+    @Scheduled(fixedDelay = 2000)
+    @Transactional
+    public void checkStalePendingLogs() {
+        LocalDateTime threshold = LocalDateTime.now().minusSeconds(5);
+        List<DeviceHistory> staleList = historyRepository.findByStatusIgnoreCaseAndExecutedAtBefore("PENDING", threshold);
+        if (!staleList.isEmpty()) {
+            for (DeviceHistory h : staleList) {
+                h.setStatus("FAIL");
+            }
+            historyRepository.saveAll(staleList);
+            System.out.println("⏱️ [Scheduler] Đã cập nhật " + staleList.size() + " bản ghi PENDING quá 5s sang FAIL.");
+        }
     }
 
     // Xử lý xác nhận từ ESP32 qua topic 'device/status'
@@ -86,7 +128,11 @@ public class DeviceService {
 
         if (pendingOpt.isPresent()) {
             DeviceHistory h = pendingOpt.get();
-            h.setStatus(stateUpper);
+            if ("FAIL".equalsIgnoreCase(stateUpper) || "ERROR".equalsIgnoreCase(stateUpper)) {
+                h.setStatus("FAIL");
+            } else {
+                h.setStatus("SUCCESS");
+            }
             historyRepository.save(h);
         }
     }

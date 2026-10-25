@@ -12,7 +12,7 @@ export interface SensorReading {
 }
 
 export type DeviceAction = 'ON' | 'OFF'
-export type DeviceStatus = 'ON' | 'OFF' | 'PENDING'
+export type DeviceStatus = 'SUCCESS' | 'FAIL' | 'PENDING' | 'ON' | 'OFF'
 
 export interface DeviceHistory {
   id: number

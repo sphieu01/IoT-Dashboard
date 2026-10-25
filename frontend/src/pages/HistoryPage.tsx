@@ -15,10 +15,11 @@ export default function HistoryPage({ logs = [] }: HistoryPageProps) {
   const [committedTimeQuery, setCommittedTimeQuery] = useState('')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(8)
+  const [reloadKey, setReloadKey] = useState(0)
 
-  const [items, setItems] = useState<DeviceHistory[]>(logs)
+  const [items, setItems] = useState<DeviceHistory[]>([])
   const [total, setTotal] = useState<number>(0)
-  const [loading, setLoading] = useState<boolean>(false)
+  const [loading, setLoading] = useState<boolean>(true)
 
   // 100% Server-side Query & Pagination từ Backend (tối đa 1000 kết quả)
   useEffect(() => {
@@ -48,17 +49,45 @@ export default function HistoryPage({ logs = [] }: HistoryPageProps) {
     return () => {
       isMounted = false
     }
-  }, [deviceFilter, actionFilter, statusFilter, committedTimeQuery, page, pageSize])
+  }, [deviceFilter, actionFilter, statusFilter, committedTimeQuery, page, pageSize, reloadKey])
 
-  // Khi ở trang 1 và không có bộ lọc/tìm kiếm: tự động cập nhật Realtime khi có lịch sử mới
+  // Tự động kiểm tra: Nếu trong bảng có bản ghi PENDING, định kỳ 1.5s làm mới từ backend.
+  // Quá 5s nếu vẫn chưa nhận được ACK thì tự động chuyển PENDING thành FAIL.
   useEffect(() => {
-    if (page === 1 && deviceFilter === 'all' && actionFilter === 'all' && statusFilter === 'all' && !committedTimeQuery) {
-      if (logs && logs.length > 0) {
-        setItems(logs.slice(0, pageSize))
-        setTotal(logs.length)
-      }
+    const hasPending = items.some((item) => item.status === 'PENDING')
+    if (!hasPending) return
+
+    // Polling định kỳ mỗi 1.5s để cập nhật kết quả từ backend
+    const pollInterval = setInterval(() => {
+      iotApiService
+        .getDeviceHistoryLogsPaged({
+          device: deviceFilter,
+          action: actionFilter,
+          status: statusFilter,
+          query: committedTimeQuery,
+          page,
+          limit: pageSize,
+        })
+        .then((res) => {
+          if (res) {
+            setItems(res.data)
+            setTotal(res.total)
+          }
+        })
+    }, 1500)
+
+    // Fallback UI: Quá 5s tự động chuyển tất cả bản ghi PENDING còn lại thành FAIL trên giao diện
+    const timeoutTimer = setTimeout(() => {
+      setItems((prev) =>
+        prev.map((item) => (item.status === 'PENDING' ? { ...item, status: 'FAIL' } : item))
+      )
+    }, 5100)
+
+    return () => {
+      clearInterval(pollInterval)
+      clearTimeout(timeoutTimer)
     }
-  }, [logs, page, deviceFilter, actionFilter, statusFilter, committedTimeQuery, pageSize])
+  }, [items, deviceFilter, actionFilter, statusFilter, committedTimeQuery, page, pageSize])
 
   const showFrom = total === 0 ? 0 : (page - 1) * pageSize + 1
   const showTo = Math.min(page * pageSize, total)
@@ -116,8 +145,8 @@ export default function HistoryPage({ logs = [] }: HistoryPageProps) {
             className={selectCls}
           >
             <option value="all">All Status</option>
-            <option value="ON">ON</option>
-            <option value="OFF">OFF</option>
+            <option value="SUCCESS">SUCCESS</option>
+            <option value="FAIL">FAIL</option>
             <option value="PENDING">PENDING</option>
           </select>
           <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#64748b] text-xs">
@@ -144,9 +173,20 @@ export default function HistoryPage({ logs = [] }: HistoryPageProps) {
               setCommittedTimeQuery(timeQuery)
               setPage(1)
             }}
-            className="px-4 py-2 bg-[#1e2d42] hover:bg-[#00d4a8]/20 border border-[#1e2d42] hover:border-[#00d4a8]/50 text-[#94a3b8] hover:text-[#00d4a8] rounded-xl text-sm font-mono font-semibold transition-all duration-200 whitespace-nowrap"
+            className="px-4 py-2 bg-[#1e2d42] hover:bg-[#00d4a8]/20 border border-[#1e2d42] hover:border-[#00d4a8]/50 text-[#94a3b8] hover:text-[#00d4a8] rounded-xl text-sm font-mono font-semibold transition-all duration-200 whitespace-nowrap cursor-pointer"
           >
             Search
+          </button>
+          <button
+            type="button"
+            onClick={() => setReloadKey((prev) => prev + 1)}
+            title="Tải lại dữ liệu (Reload)"
+            className="px-3.5 py-2 bg-[#1e2d42] hover:bg-[#334155] border border-[#1e2d42] text-[#94a3b8] hover:text-[#00d4a8] rounded-xl text-sm font-mono font-semibold transition-all duration-200 flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+          >
+            <svg className={`w-4 h-4 ${loading ? 'animate-spin text-[#00d4a8]' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span className="hidden sm:inline">Reload</span>
           </button>
         </div>
       </div>

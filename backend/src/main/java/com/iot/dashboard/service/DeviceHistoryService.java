@@ -7,7 +7,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -22,8 +24,25 @@ public class DeviceHistoryService {
         this.historyRepository = historyRepository;
     }
 
+    // Tự động kiểm tra và chuyển tất cả các bản ghi PENDING quá 5 giây sang FAIL trong DB
+    @Transactional
+    public void autoExpireStalePendingLogs() {
+        try {
+            LocalDateTime threshold = LocalDateTime.now().minusSeconds(5);
+            List<DeviceHistory> stale = historyRepository.findByStatusIgnoreCaseAndExecutedAtBefore("PENDING", threshold);
+            if (!stale.isEmpty()) {
+                for (DeviceHistory h : stale) {
+                    h.setStatus("FAIL");
+                }
+                historyRepository.saveAll(stale);
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
     // Lấy toàn bộ lịch sử bật tắt cho HistoryPage (không phân trang)
     public List<DeviceHistoryDto> getAllHistoryLogs() {
+        autoExpireStalePendingLogs();
         List<DeviceHistory> list = historyRepository.findAllByOrderByExecutedAtDesc(); // list này chưa được định dạng
                                                                                        // chuẩn
         List<DeviceHistoryDto> result = new ArrayList<>(); // chứa định dạng chuẩn
@@ -41,12 +60,15 @@ public class DeviceHistoryService {
     // Lấy lịch sử có phân trang, tìm kiếm và lọc đa trường
     public Map<String, Object> getFilteredHistoryLogs(String device, String action, String status, String query,
             String sort, int page, int perPage) {
+        autoExpireStalePendingLogs();
+
         Sort sortOrder = "oldest".equalsIgnoreCase(sort)
                 ? Sort.by(Sort.Direction.ASC, "executedAt")
                 : Sort.by(Sort.Direction.DESC, "executedAt");
 
-        // Lấy tất cả từ DB theo thứ tự sắp xếp để lọc trước
-        List<DeviceHistory> list = historyRepository.findAll(sortOrder);
+        // Tối ưu: Chỉ lấy tối đa 1000 bản ghi từ DB bằng LIMIT trực tiếp
+        Pageable limitFetch = PageRequest.of(0, 1000, sortOrder);
+        List<DeviceHistory> list = historyRepository.findAll(limitFetch).getContent();
 
         final int MAX_FETCH = 1000;
         String q = (query != null) ? query.trim().toLowerCase() : "";
@@ -64,8 +86,12 @@ public class DeviceHistoryService {
                             return false;
                     }
                     if (status != null && !status.trim().isEmpty() && !"all".equalsIgnoreCase(status)) {
-                        if (!status.equalsIgnoreCase(h.getStatus()))
-                            return false;
+                        boolean match = status.equalsIgnoreCase(h.getStatus());
+                        if (!match) {
+                            if ("SUCCESS".equalsIgnoreCase(status) && "ON".equalsIgnoreCase(h.getStatus())) match = true;
+                            if ("FAIL".equalsIgnoreCase(status) && "OFF".equalsIgnoreCase(h.getStatus())) match = true;
+                        }
+                        if (!match) return false;
                     }
                     // Thanh tìm kiếm chỉ tìm theo thời gian (fullTime)
                     if (!q.isEmpty()) {
