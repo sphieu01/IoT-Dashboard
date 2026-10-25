@@ -36,38 +36,44 @@ public class SensorService {
                 .orElseGet(() -> sensorRepository.save(new Sensor(name, type)));
     }
 
-    // Lưu bản ghi cảm biến mới nhận từ ESP32 vào tbl_datasensors (tách thành 3 bản
-    // ghi chuẩn hóa)
+    // Lưu bản ghi cảm biến mới nhận từ ESP32 vào tbl_datasensors (tách thành 4 bản ghi chuẩn hóa)
     @Transactional
-    public List<DataSensor> saveReading(Double temp, Double humidity, Double light) {
+    public List<DataSensor> saveReading(Double temp, Double humidity, Double light, Double windSpeed) {
         LocalDateTime now = LocalDateTime.now();
 
         Sensor sTemp = getOrCreateSensor("DHT11", "temperature");
         Sensor sHum = getOrCreateSensor("DHT11", "humidity");
         Sensor sLight = getOrCreateSensor("LDR", "light");
+        Sensor sWind = getOrCreateSensor("Anemometer", "wind-speed");
 
         float roundedTemp = temp != null ? (float) (Math.round(temp * 10.0) / 10.0) : 0.0f;
         float roundedHum = humidity != null ? (float) (Math.round(humidity * 10.0) / 10.0) : 0.0f;
         float roundedLight = light != null ? (float) Math.round(light) : 0.0f;
+        float roundedWind = windSpeed != null ? (float) (Math.round(windSpeed * 10.0) / 10.0) : 0.0f;
 
         DataSensor dTemp = new DataSensor(sTemp, roundedTemp, now);
         DataSensor dHum = new DataSensor(sHum, roundedHum, now);
         DataSensor dLight = new DataSensor(sLight, roundedLight, now);
+        DataSensor dWind = new DataSensor(sWind, roundedWind, now);
 
-        return dataSensorRepository.saveAll(Arrays.asList(dTemp, dHum, dLight));
+        return dataSensorRepository.saveAll(Arrays.asList(dTemp, dHum, dLight, dWind));
     }
 
-    // Lấy danh sách điểm cho biểu đồ LiveChart (15 điểm mới nhất sắp xếp theo thời
-    // gian tăng dần)
+    @Transactional
+    public List<DataSensor> saveReading(Double temp, Double humidity, Double light) {
+        return saveReading(temp, humidity, light, 0.0);
+    }
+
+    // Lấy danh sách điểm cho biểu đồ LiveChart (15 điểm mới nhất sắp xếp theo thời gian tăng dần)
     public List<LiveChartPointDto> getLatestChartPoints(int limit) {
-        // Mỗi chu kỳ đo gồm 3 bản ghi (temp, hum, light) -> lấy tối đa 45 bản ghi
-        List<DataSensor> list = dataSensorRepository.findTop45ByOrderByMeasuredAtDesc();
+        // Mỗi chu kỳ đo gồm 4 bản ghi (temp, hum, light, wind) -> lấy tối đa 60 bản ghi
+        List<DataSensor> list = dataSensorRepository.findTop60ByOrderByMeasuredAtDesc();
 
         // Nhóm các bản ghi theo thời điểm đo (giữ thứ tự chèn)
         Map<String, double[]> grouped = new LinkedHashMap<>();
         for (DataSensor d : list) { // gom nhóm cùng thời gian
             String timeKey = d.getMeasuredAt().format(timeFormatter);
-            grouped.putIfAbsent(timeKey, new double[] { 0.0, 0.0, 0.0 }); // [temp, hum, light]
+            grouped.putIfAbsent(timeKey, new double[] { 0.0, 0.0, 0.0, 0.0 }); // [temp, hum, light, windSpeed]
             double[] values = grouped.get(timeKey);
 
             String type = d.getSensor() != null ? d.getSensor().getType().toLowerCase() : "";
@@ -77,6 +83,8 @@ public class SensorService {
                 values[1] = d.getValue();
             } else if (type.contains("light")) {
                 values[2] = d.getValue();
+            } else if (type.contains("wind")) {
+                values[3] = d.getValue();
             }
         }
         // chuẩn hóa
@@ -86,17 +94,31 @@ public class SensorService {
             double roundedTemp = (double) Math.round(val[0] * 10.0) / 10.0;
             double roundedHum = (double) Math.round(val[1] * 10.0) / 10.0;
             double roundedLight = (double) Math.round(val[2]);
-            result.add(new LiveChartPointDto(entry.getKey(), roundedTemp, roundedHum, roundedLight));
+            double roundedWind = (double) Math.round(val[3] * 10.0) / 10.0;
+            result.add(new LiveChartPointDto(entry.getKey(), roundedTemp, roundedHum, roundedLight, roundedWind));
         }
 
-        // Đảo ngược lại để theo thứ tự thời gian từ cũ -> mới (trái sang phải trên biểu
-        // đồ)
+        // Đảo ngược lại để theo thứ tự thời gian từ cũ -> mới (trái sang phải trên biểu đồ)
         Collections.reverse(result);
 
         if (result.size() > limit) {
             return result.subList(result.size() - limit, result.size());
         }
         return result;
+    }
+
+    private String mapSensorDisplayName(DataSensor d) {
+        String type = d.getSensor() != null ? d.getSensor().getType().toLowerCase() : "";
+        if (type.contains("temp")) {
+            return "Temperature";
+        } else if (type.contains("hum")) {
+            return "Humidity";
+        } else if (type.contains("light")) {
+            return "Light";
+        } else if (type.contains("wind")) {
+            return "Wind Speed";
+        }
+        return "Unknown";
     }
 
     // Lấy dữ liệu cho trang DataSensorPage từ bảng tbl_datasensors
@@ -122,15 +144,7 @@ public class SensorService {
             List<SensorFlatDto> pagedData = dbPage.getContent().stream()
                     .map(d -> {
                         String fullTime = d.getMeasuredAt().format(fullTimeFormatter);
-                        String displaySensor = "Temperature";
-                        String type = d.getSensor() != null ? d.getSensor().getType().toLowerCase() : "";
-                        if (type.contains("temp")) {
-                            displaySensor = "Temperature";
-                        } else if (type.contains("hum")) {
-                            displaySensor = "Humidity";
-                        } else if (type.contains("light")) {
-                            displaySensor = "Light";
-                        }
+                        String displaySensor = mapSensorDisplayName(d);
                         return new SensorFlatDto(
                                 d.getId(),
                                 displaySensor,
@@ -154,15 +168,7 @@ public class SensorService {
         List<SensorFlatDto> filtered = allData.stream()
                 .filter(d -> {
                     String fullTime = d.getMeasuredAt().format(fullTimeFormatter);
-                    String displaySensor = "Temperature";
-                    String type = d.getSensor() != null ? d.getSensor().getType().toLowerCase() : "";
-                    if (type.contains("temp")) {
-                        displaySensor = "Temperature";
-                    } else if (type.contains("hum")) {
-                        displaySensor = "Humidity";
-                    } else if (type.contains("light")) {
-                        displaySensor = "Light";
-                    }
+                    String displaySensor = mapSensorDisplayName(d);
 
                     double roundedVal = (double) Math.round(d.getValue() * 10.0) / 10.0;
                     String valStr = String.valueOf(roundedVal);
@@ -177,6 +183,9 @@ public class SensorService {
                     } else if ("light".equalsIgnoreCase(searchType)) {
                         if (!"light".equalsIgnoreCase(displaySensor)) return false;
                         return valStr.contains(q) || intValStr.contains(q);
+                    } else if ("wind".equalsIgnoreCase(searchType) || "windspeed".equalsIgnoreCase(searchType) || "wind-speed".equalsIgnoreCase(searchType) || "wind_speed".equalsIgnoreCase(searchType)) {
+                        if (!"wind speed".equalsIgnoreCase(displaySensor)) return false;
+                        return valStr.contains(q) || intValStr.contains(q);
                     } else if ("time".equalsIgnoreCase(searchType)) {
                         return fullTime.toLowerCase().contains(q);
                     } else { // "all"
@@ -188,15 +197,7 @@ public class SensorService {
                 })
                 .map(d -> {
                     String fullTime = d.getMeasuredAt().format(fullTimeFormatter);
-                    String displaySensor = "Temperature";
-                    String type = d.getSensor() != null ? d.getSensor().getType().toLowerCase() : "";
-                    if (type.contains("temp")) {
-                        displaySensor = "Temperature";
-                    } else if (type.contains("hum")) {
-                        displaySensor = "Humidity";
-                    } else if (type.contains("light")) {
-                        displaySensor = "Light";
-                    }
+                    String displaySensor = mapSensorDisplayName(d);
                     return new SensorFlatDto(
                             d.getId(),
                             displaySensor,
@@ -218,6 +219,79 @@ public class SensorService {
         response.put("total", total);
         response.put("totalPages", totalPages);
         response.put("currentPage", safePage);
+
+        return response;
+    }
+
+    // Thống kê cảnh báo theo tháng (số cảnh báo / ngày khi wind-speed > 300)
+    public Map<String, Object> getMonthlyAlertStatistics(int year, int month) {
+        java.time.YearMonth yearMonth = java.time.YearMonth.of(year, month);
+        LocalDateTime startDt = yearMonth.atDay(1).atStartOfDay();
+        LocalDateTime endDt = yearMonth.atEndOfMonth().atTime(23, 59, 59);
+
+        List<DataSensor> windReadings = dataSensorRepository.findWindReadingsInRange(startDt, endDt);
+
+        int daysInMonth = yearMonth.lengthOfMonth();
+        int[] alertCounts = new int[daysInMonth + 1];
+        double[] maxWindSpeeds = new double[daysInMonth + 1];
+        int[] totalReadings = new int[daysInMonth + 1];
+
+        int totalAlerts = 0;
+        double maxMonthlyWindSpeed = 0.0;
+
+        for (DataSensor d : windReadings) {
+            int day = d.getMeasuredAt().getDayOfMonth();
+            double val = (double) Math.round(d.getValue() * 10.0) / 10.0;
+            totalReadings[day]++;
+            if (val > maxWindSpeeds[day]) {
+                maxWindSpeeds[day] = val;
+            }
+            if (val > maxMonthlyWindSpeed) {
+                maxMonthlyWindSpeed = val;
+            }
+            if (val > 300.0) {
+                alertCounts[day]++;
+                totalAlerts++;
+            }
+        }
+
+        int peakDay = 1;
+        int maxDayAlerts = 0;
+        int daysWithAlerts = 0;
+
+        List<Map<String, Object>> dailyList = new ArrayList<>();
+        for (int day = 1; day <= daysInMonth; day++) {
+            int count = alertCounts[day];
+            if (count > maxDayAlerts) {
+                maxDayAlerts = count;
+                peakDay = day;
+            }
+            if (count > 0) {
+                daysWithAlerts++;
+            }
+
+            Map<String, Object> item = new HashMap<>();
+            item.put("day", day);
+            item.put("date", String.format("%04d-%02d-%02d", year, month, day));
+            item.put("alertCount", count);
+            item.put("maxWindSpeed", (double) Math.round(maxWindSpeeds[day] * 10.0) / 10.0);
+            item.put("totalReadings", totalReadings[day]);
+            dailyList.add(item);
+        }
+
+        Map<String, Object> peakDayMap = new HashMap<>();
+        peakDayMap.put("day", peakDay);
+        peakDayMap.put("count", maxDayAlerts);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("year", year);
+        response.put("month", month);
+        response.put("totalAlerts", totalAlerts);
+        response.put("peakDay", peakDayMap);
+        response.put("maxMonthlyWindSpeed", (double) Math.round(maxMonthlyWindSpeed * 10.0) / 10.0);
+        response.put("daysWithAlerts", daysWithAlerts);
+        response.put("safeDays", daysInMonth - daysWithAlerts);
+        response.put("dailyCounts", dailyList);
 
         return response;
     }

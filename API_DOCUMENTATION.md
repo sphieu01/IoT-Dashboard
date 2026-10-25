@@ -21,8 +21,9 @@
 | **Thiết bị** | `GET` | `/api/devices/status` | ✅ Có | Lấy trạng thái ON/OFF hiện tại của đèn và quạt |
 | **Thiết bị** | `POST` | `/api/devices/control` | ✅ Có | Bật/tắt thiết bị, gửi lệnh MQTT tới ESP32, tạo log `PENDING` |
 | **Thiết bị** | `GET` | `/api/devices/history` | ✅ Có | Lịch sử thao tác (`SUCCESS`, `FAIL`, `PENDING`), tìm theo thời gian |
-| **Cảm biến** | `GET` | `/api/sensors/history` | ✅ Có | Lấy danh sách đo cảm biến phẳng (phân trang, lọc theo cột, tối đa 1000 dòng) |
-| **Cảm biến** | `GET` | `/api/sensors/latest` | ✅ Có | Lấy 15 điểm đo mới nhất vẽ đồ thị Live Chart và hiển thị thẻ Card |
+| **Cảm biến** | `GET` | `/api/sensors/history` | ✅ Có | Lấy danh sách đo cảm biến phẳng (Nhiệt độ, Độ ẩm, Ánh sáng, Tốc độ gió), phân trang, lọc theo cột |
+| **Cảm biến** | `GET` | `/api/sensors/latest` | ✅ Có | Lấy 15 điểm đo mới nhất vẽ đồ thị Live Chart (gồm cả Tốc độ gió) |
+| **Cảm biến** | `GET` | `/api/sensors/alerts/monthly` | ✅ Có | Thống kê số lượng cảnh báo tốc độ gió (> 300 m/s) theo từng ngày trong tháng |
 | **Hồ sơ** | `GET` | `/api/profile` | ❌ Không | Lấy thông tin cá nhân sinh viên |
 | **Realtime** | `WS` | `/ws` | ❌ Không | Kênh WebSocket truyền nhận dữ liệu thời gian thực (tham khảo) |
 
@@ -300,9 +301,55 @@ curl -X GET "http://localhost:5000/api/devices/history?device=Light&action=ON&st
     "time": "14:20:01",
     "temp": 29.5,
     "humidity": 67.0,
-    "light": 450.0
+    "light": 450.0,
+    "windSpeed": 345.5
   }
 ]
+```
+
+---
+
+### 3. Thống kê số cảnh báo theo tháng (Alert Chart)
+* **Endpoint:** `GET /api/sensors/alerts/monthly`
+* **Mục đích:** Thống kê số lần tốc độ gió vượt ngưỡng an toàn (> 300 m/s) theo từng ngày trong tháng để vẽ biểu đồ tháng (Bar Chart & Area Chart).
+* **Headers:** `Authorization: Bearer <token>`
+* **Query Parameters:**
+
+| Tham số | Kiểu dữ liệu | Mặc định | Mô tả |
+| :--- | :---: | :---: | :--- |
+| `year` | Integer | Năm hiện tại | Năm cần thống kê (VD: `2026`) |
+| `month` | Integer | Tháng hiện tại | Tháng cần thống kê (1 - 12, VD: `10`) |
+
+#### Response thành công (200 OK):
+```json
+{
+  "year": 2026,
+  "month": 10,
+  "totalAlerts": 42,
+  "peakDay": {
+    "day": 14,
+    "count": 9
+  },
+  "maxMonthlyWindSpeed": 488.5,
+  "daysWithAlerts": 8,
+  "safeDays": 23,
+  "dailyCounts": [
+    {
+      "day": 1,
+      "date": "2026-10-01",
+      "alertCount": 3,
+      "maxWindSpeed": 350.2,
+      "totalReadings": 8
+    },
+    {
+      "day": 2,
+      "date": "2026-10-02",
+      "alertCount": 0,
+      "maxWindSpeed": 180.0,
+      "totalReadings": 6
+    }
+  ]
+}
 ```
 
 ---

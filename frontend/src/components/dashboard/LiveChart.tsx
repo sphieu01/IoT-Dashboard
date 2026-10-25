@@ -9,10 +9,10 @@ import {
   Legend,
   Line,
 } from 'recharts'
-import { C_TEMP, C_HUMIDITY, C_LIGHT } from '../../services/mockData'
+import { C_TEMP, C_HUMIDITY, C_LIGHT, C_WIND } from '../../services/mockData'
 
 interface LiveChartProps {
-  data: { time: string; temp: number; humidity: number; light: number }[]
+  data: { time: string; temp: number; humidity: number; light: number; windSpeed?: number }[]
   isConnected?: boolean
   isEspOnline?: boolean
 }
@@ -30,19 +30,32 @@ function ChartTooltip({
   return (
     <div className="bg-[#0f1720] border border-[#1e2d42] rounded-xl px-4 py-3 text-xs font-mono shadow-2xl">
       <div className="text-[#64748b] mb-2 font-semibold">{label}</div>
-      {payload.map((p) => (
-        <div key={p.name} className="flex items-center gap-2 mb-1">
-          <span className="w-2 h-2 rounded-full" style={{ background: p.color }} />
-          <span className="text-[#94a3b8]">{p.name}:</span>
-          <span className="text-white font-semibold">
-            {typeof p.value === 'number'
-              ? p.name.includes('Light')
-                ? Math.round(p.value)
-                : Number(p.value).toFixed(1)
-              : p.value}
-          </span>
-        </div>
-      ))}
+      {payload.map((p) => {
+        let displayVal = ''
+        if (typeof p.value === 'number') {
+          if (p.name.includes('Light')) {
+            displayVal = `${Math.round(p.value)} lux`
+          } else if (p.name.includes('Wind')) {
+            displayVal = `${Number(p.value).toFixed(1)} m/s`
+          } else if (p.name.includes('Temp')) {
+            displayVal = `${Number(p.value).toFixed(1)} °C`
+          } else if (p.name.includes('Humidity')) {
+            displayVal = `${Number(p.value).toFixed(1)} %`
+          } else {
+            displayVal = String(p.value)
+          }
+        } else {
+          displayVal = String(p.value)
+        }
+
+        return (
+          <div key={p.name} className="flex items-center gap-2 mb-1">
+            <span className="w-2 h-2 rounded-full" style={{ background: p.color }} />
+            <span className="text-[#94a3b8]">{p.name}:</span>
+            <span className="text-white font-semibold">{displayVal}</span>
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -131,20 +144,20 @@ export default function LiveChart({
                   dx: 15,
                 }}
               />
-              {/* Right Y-Axis: Light (0 - 1000 Lux) */}
+              {/* Right Y-Axis: Light (0 - 1000 Lux) & Wind Speed (0 - 500 m/s) */}
               <YAxis
                 yAxisId="right"
                 orientation="right"
                 domain={[0, 1000]}
                 tick={{ fill: C_LIGHT, fontSize: 10, fontFamily: 'JetBrains Mono' }}
-                width={20}
+                width={28}
                 label={{
-                  value: 'Light (Lux)',
+                  value: 'Light (Lux) / Wind (m/s)',
                   angle: 90,
                   position: 'insideRight',
                   fill: C_LIGHT,
                   fontSize: 9,
-                  dx: 20,
+                  dx: 24,
                   dy: 40,
                 }}
               />
@@ -182,6 +195,16 @@ export default function LiveChart({
                 dataKey="light"
                 name="Light (Lux)"
                 stroke={C_LIGHT}
+                strokeWidth={2.5}
+                dot={data.length <= 5}
+                activeDot={{ r: 4 }}
+              />
+              <Line
+                yAxisId="right"
+                type="monotone"
+                dataKey="windSpeed"
+                name="Wind Speed (m/s)"
+                stroke={C_WIND}
                 strokeWidth={2.5}
                 dot={data.length <= 5}
                 activeDot={{ r: 4 }}

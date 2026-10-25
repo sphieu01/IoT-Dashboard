@@ -40,4 +40,16 @@ public class SensorController {
     ) {
         return ResponseEntity.ok(sensorService.getLatestChartPoints(limit));
     }
+
+    // 3. Lấy thống kê số cảnh báo theo từng ngày trong tháng (cho biểu đồ tháng)
+    @GetMapping("/alerts/monthly")
+    public ResponseEntity<Map<String, Object>> getMonthlyAlerts(
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month
+    ) {
+        java.time.LocalDate now = java.time.LocalDate.now();
+        int targetYear = (year != null && year >= 2000 && year <= 2100) ? year : now.getYear();
+        int targetMonth = (month != null && month >= 1 && month <= 12) ? month : now.getMonthValue();
+        return ResponseEntity.ok(sensorService.getMonthlyAlertStatistics(targetYear, targetMonth));
+    }
 }

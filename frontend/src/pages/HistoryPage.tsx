@@ -109,6 +109,7 @@ export default function HistoryPage({ logs = [] }: HistoryPageProps) {
             <option value="all">All Devices</option>
             <option value="Light">Light</option>
             <option value="Fan">Fan</option>
+            <option value="Alert LED">Alert LED</option>
           </select>
           <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#64748b] text-xs">
             ▾

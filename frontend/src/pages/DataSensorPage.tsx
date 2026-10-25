@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Pagination, selectCls, inputCls, thCls, tdCls } from '../components/common'
-import { C_LIGHT, C_HUMIDITY, C_TEMP } from '../services/mockData'
+import { C_LIGHT, C_HUMIDITY, C_TEMP, C_WIND } from '../services/mockData'
 import { SensorReading, SensorType } from '../types'
 import { iotApiService } from '../services/api'
 
@@ -12,12 +12,13 @@ const SENSOR_META: Record<SensorType, { unit: string; color: string }> = {
   Light: { unit: 'lux', color: C_LIGHT },
   Humidity: { unit: '%', color: C_HUMIDITY },
   Temperature: { unit: '°C', color: C_TEMP },
+  'Wind Speed': { unit: 'm/s', color: C_WIND },
 }
 
 export default function DataSensorPage({ rows = [] }: DataSensorPageProps) {
   const [sort, setSort] = useState<'newest' | 'oldest'>('newest')
-  const [searchType, setSearchType] = useState<'all' | 'light' | 'humidity' | 'temp' | 'time'>('all')
-  const [committedSearchType, setCommittedSearchType] = useState<'all' | 'light' | 'humidity' | 'temp' | 'time'>('all')
+  const [searchType, setSearchType] = useState<'all' | 'light' | 'humidity' | 'temp' | 'wind' | 'time'>('all')
+  const [committedSearchType, setCommittedSearchType] = useState<'all' | 'light' | 'humidity' | 'temp' | 'wind' | 'time'>('all')
   const [query, setQuery] = useState('')
   const [committedQuery, setCommittedQuery] = useState('')
   const [page, setPage] = useState(1)
@@ -91,7 +92,7 @@ export default function DataSensorPage({ rows = [] }: DataSensorPageProps) {
           <select
             value={searchType}
             onChange={(e) => {
-              setSearchType(e.target.value as 'all' | 'light' | 'humidity' | 'temp' | 'time')
+              setSearchType(e.target.value as 'all' | 'light' | 'humidity' | 'temp' | 'wind' | 'time')
               // Chỉ thay đổi giá trị trong dropdown, đợi bấm nút Search mới lọc
             }}
             className={selectCls}
@@ -100,6 +101,7 @@ export default function DataSensorPage({ rows = [] }: DataSensorPageProps) {
             <option value="light">Light</option>
             <option value="humidity">Humidity</option>
             <option value="temp">Temperature</option>
+            <option value="wind">Wind Speed</option>
             <option value="time">Timestamp</option>
           </select>
           <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#64748b] text-xs">▾</span>

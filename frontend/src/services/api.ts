@@ -1,4 +1,4 @@
-import { SensorReading, DeviceHistory, HistoryLog, DeviceStates } from '../types'
+import { SensorReading, DeviceHistory, HistoryLog, DeviceStates, MonthlyAlertSummary } from '../types'
 
 export function formatFullTime(d: Date): string {
   const hh = String(d.getHours()).padStart(2, '0')
@@ -118,8 +118,8 @@ export const iotApiService = {
     }
   },
 
-  // 2. Lấy 15 điểm đo mới nhất cho LiveChart
-  async getLatestChartSensors(): Promise<{ time: string; temp: number; humidity: number; light: number }[] | null> {
+  // 2. Lấy 15 điểm đo mới nhất cho LiveChart (bao gồm nhiệt độ, độ ẩm, ánh sáng, tốc độ gió)
+  async getLatestChartSensors(): Promise<{ time: string; temp: number; humidity: number; light: number; windSpeed?: number }[] | null> {
     try {
       const res = await fetch(`${API_BASE_URL}/sensors/latest?limit=15`, {
         headers: getAuthHeaders(),
@@ -128,6 +128,20 @@ export const iotApiService = {
       return await res.json()
     } catch (e) {
       console.warn('[API] Khong the lay du lieu bieu do tu backend:', e)
+      return null
+    }
+  },
+
+  // 2b. Lấy thống kê số cảnh báo theo tháng (phục vụ trang AlertChartPage)
+  async getMonthlyAlertStats(year: number, month: number): Promise<MonthlyAlertSummary | null> {
+    try {
+      const res = await fetch(`${API_BASE_URL}/sensors/alerts/monthly?year=${year}&month=${month}`, {
+        headers: getAuthHeaders(),
+      })
+      if (!res.ok) throw new Error('Failed to fetch monthly alerts')
+      return await res.json()
+    } catch (e) {
+      console.warn('[API] Khong the lay thong ke canh bao thang tu backend:', e)
       return null
     }
   },

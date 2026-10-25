@@ -71,8 +71,6 @@ public class MqttService implements MqttCallback {
     @PostConstruct
     public void start() {
         connectToBroker();
-        // startWatchdog(); // Tạm tắt vì Frontend hiện tại tự kiểm tra nhịp tim ESP32
-        // qua REST API
     }
 
     // =========================================================================
@@ -219,17 +217,34 @@ public class MqttService implements MqttCallback {
                 Double rawHumid = json.has("humid") ? json.get("humid").asDouble() : 0.0;
                 Double rawLight = json.has("light") ? json.get("light").asDouble() : 0.0;
 
+                Double rawWind = 0.0;
+                if (json.has("windSpeed")) {
+                    rawWind = json.get("windSpeed").asDouble();
+                } else if (json.has("wind_speed")) {
+                    rawWind = json.get("wind_speed").asDouble();
+                } else if (json.has("wind-speed")) {
+                    rawWind = json.get("wind-speed").asDouble();
+                } else if (json.has("wind")) {
+                    rawWind = json.get("wind").asDouble();
+                }
+
                 // Làm tròn 1 chữ số thập phân cho nhiệt độ và độ ẩm
                 Double temp = (double) Math.round(rawTemp * 10.0) / 10.0;
                 Double humid = (double) Math.round(rawHumid * 10.0) / 10.0;
 
-                // Đảo chiều quang trở: ESP32 ADC 12-bit (0 - 4095) và làm tròn số nguyên cho
-                // Ánh sáng
+                // Đảo chiều quang trở: ESP32 ADC 12-bit (0 - 4095) và làm tròn số nguyên cho Ánh sáng
                 Double light = (double) Math.round(Math.max(0.0, 4095.0 - rawLight));
+
+                // Làm tròn tốc độ gió 1 chữ số thập phân (0 - 500 m/s)
+                Double wind = (double) Math.round(rawWind * 10.0) / 10.0;
 
                 // Lưu vào database và lấy ra danh sách bản ghi với ID tự tăng thật
                 java.util.List<com.iot.dashboard.entity.DataSensor> savedList = sensorService.saveReading(temp, humid,
-                        light);
+                        light, wind);
+
+                // Cập nhật thiết bị Alert LED: Tự động ghi vào DB (bảng history và tbl_devices) mỗi khi bật/tắt (wind > 300)
+                boolean isAlert = (wind > 300.0);
+                deviceService.updateAlertLedState(isAlert);
 
                 /*
                  * [WEBSOCKET] Tạm tắt broadcast vì Frontend đã chuyển sang gọi REST API
@@ -276,6 +291,10 @@ public class MqttService implements MqttCallback {
                     deviceService.handleDeviceAck("Fan", status);
                     // [WEBSOCKET] Tạm tắt:
                     // broadcastDeviceAck("Fan", status.toUpperCase());
+                }
+                if (json.has("alertLed") || json.has("ledAlert")) {
+                    String status = json.has("alertLed") ? json.get("alertLed").asText() : json.get("ledAlert").asText();
+                    deviceService.updateAlertLedState("on".equalsIgnoreCase(status));
                 }
             }
         } catch (Exception e) {

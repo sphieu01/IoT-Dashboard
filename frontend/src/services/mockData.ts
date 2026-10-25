@@ -3,6 +3,7 @@ import { UserProfileInfo, DeviceConfig, PageTab } from '../types'
 export const C_TEMP = '#f97316'
 export const C_HUMIDITY = '#3b82f6'
 export const C_LIGHT = '#ecde19ff'
+export const C_WIND = '#06b6d4'
 
 export const USER_INFO: UserProfileInfo = {
   name: 'Đào Trung Hiếu',
@@ -22,4 +23,5 @@ export const PAGE_TITLES: Record<PageTab, string> = {
   'data-sensor': 'Data Sensor',
   history: 'History',
   'my-profile': 'My Profile',
+  alerts: 'Alert Chart',
 }

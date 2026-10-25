@@ -9,8 +9,14 @@
 #define LDR_PIN 32    
 #define LED1_PIN 5    // Đèn 1 cắm ở D5
 #define LED2_PIN 18   // Đèn 2 cắm ở D18
+#define LED_ALERT_PIN 19 // Đèn cảnh báo tốc độ gió cắm ở D19 (tự động, không bật/tắt thủ công)
 
 DHT dht(DPIN, DTYPE);
+
+// Biến trạng thái cảnh báo gió > 300 m/s để nháy đèn liên tiếp
+bool isWindAlert = false;
+unsigned long lastAlertBlink = 0;
+bool alertLedState = LOW;
 
 // ==============================================================
 // --- CẤU HÌNH 2 MẠNG WI-FI & IP MQTT BROKER TƯƠNG ỨNG ---
@@ -60,11 +66,12 @@ void setupMqttServer() {
   client.setCallback(callback);
 }
 
-// HÀM BÁO CÁO TRẠNG THÁI HIỆN TẠI CỦA 2 ĐÈN LÊN TOPIC device/status
+// HÀM BÁO CÁO TRẠNG THÁI HIỆN TẠI CỦA CÁC THIẾT BỊ LÊN TOPIC device/status
 void publishDeviceStatus() {
   String s1 = (digitalRead(LED1_PIN) == HIGH) ? "on" : "off";
   String s2 = (digitalRead(LED2_PIN) == HIGH) ? "on" : "off";
-  String payload = "{\"led1\":\"" + s1 + "\",\"led2\":\"" + s2 + "\"}";
+  String sAlert = isWindAlert ? "on" : "off";
+  String payload = "{\"led1\":\"" + s1 + "\",\"led2\":\"" + s2 + "\",\"alertLed\":\"" + sAlert + "\"}";
   client.publish("device/status", payload.c_str());
   Serial.print("-> Đã đồng bộ trạng thái thiết bị lên server: ");
   Serial.println(payload);
@@ -123,15 +130,17 @@ void setup() {
   Serial.begin(9600);
   dht.begin();
   
-  // Khai báo Output và tắt cả 2 đèn lúc mới khởi động
+  // Khai báo Output và tắt cả 3 đèn lúc mới khởi động (LED1, LED2, LED Alert)
   pinMode(LED1_PIN, OUTPUT);
   pinMode(LED2_PIN, OUTPUT);
+  pinMode(LED_ALERT_PIN, OUTPUT);
   digitalWrite(LED1_PIN, LOW);
   digitalWrite(LED2_PIN, LOW);
+  digitalWrite(LED_ALERT_PIN, LOW);
   
   // Đăng ký cả 2 mạng Wi-Fi vào danh sách tự động tìm kiếm (WiFiMulti)
   wifiMulti.addAP(WIFI_1_SSID, WIFI_1_PASS);
-  // wifiMulti.addAP(WIFI_2_SSID, WIFI_2_PASS);
+  wifiMulti.addAP(WIFI_2_SSID, WIFI_2_PASS);
 
   Serial.println("\nĐang quét và kết nối Wi-Fi (Hotspot hoặc WiFi nhà)...");
   while (wifiMulti.run() != WL_CONNECTED) {
@@ -185,8 +194,20 @@ void loop() {
   }
   client.loop();  // ESP32 liên tục kiểm tra hòm thư xem có tin nhắn hay lệnh mới không.
 
-  // LUỒNG PUBLISH: Gửi dữ liệu mỗi 2 giây ---
+  // XỬ LÝ NHÁY ĐÈN CẢNH BÁO LIÊN TIẾP KHI TỐC ĐỘ GIÓ > 300 m/s
   unsigned long now = millis();
+  if (isWindAlert) {
+    if (now - lastAlertBlink >= 150) { // Chớp tắt liên tiếp chu kỳ 150ms
+      lastAlertBlink = now;
+      alertLedState = !alertLedState;
+      digitalWrite(LED_ALERT_PIN, alertLedState);
+    }
+  } else {
+    digitalWrite(LED_ALERT_PIN, LOW);
+    alertLedState = LOW;
+  }
+
+  // LUỒNG PUBLISH: Gửi dữ liệu mỗi 2 giây ---
   if (now - lastMsg > 2000) {
     lastMsg = now;
     
@@ -195,14 +216,36 @@ void loop() {
     // Đọc giá trị thô từ chân LDR (0 - 4095). Backend Spring Boot sẽ tự động đảo chiều (4095 - light)
     int lightRaw = analogRead(LDR_PIN);
 
+    // Cảm biến tốc độ gió: random từ 0 đến 500 m/s
+    float windSpeed = (float)random(0, 501);
+
+    // Kiểm tra ngưỡng cảnh báo: wind-speed > 300 m/s
+    if (windSpeed > 300) {
+      if (!isWindAlert) {
+        isWindAlert = true;
+        client.publish("device/status", "{\"alertLed\":\"on\"}");
+      }
+      Serial.print("⚠️ [CẢNH BÁO NGUY HIỂM] Tốc độ gió: ");
+      Serial.print(windSpeed);
+      Serial.println(" m/s (> 300 m/s) -> Đèn LED cảnh báo nháy liên tục!");
+    } else {
+      if (isWindAlert) {
+        isWindAlert = false;
+        client.publish("device/status", "{\"alertLed\":\"off\"}");
+      }
+    }
+
     if (isnan(tc) || isnan(hu)) return;
 
     String payload = "{";
     payload += "\"temp\":" + String(tc) + ",";
     payload += "\"humid\":" + String(hu) + ",";
-    payload += "\"light\":" + String(lightRaw);
+    payload += "\"light\":" + String(lightRaw) + ",";
+    payload += "\"windSpeed\":" + String(windSpeed);
     payload += "}";
 
     client.publish("data/sensors", payload.c_str()); // Gửi gói tin lên topic data/sensors
+    Serial.print("-> Đã gửi telemetry lên MQTT: ");
+    Serial.println(payload);
   }
 }

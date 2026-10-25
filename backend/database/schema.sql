@@ -21,7 +21,8 @@ CREATE TABLE `tbl_sensors` (
 INSERT INTO `tbl_sensors` (`id`, `name`, `type`) VALUES
 (1, 'DHT11', 'temperature'),
 (2, 'DHT11', 'humidity'),
-(3, 'LDR', 'light');
+(3, 'LDR', 'light'),
+(4, 'Anemometer', 'wind-speed');
 
 -- --------------------------------------------------------------
 -- Bảng 3: tbl_devices (Danh mục thiết bị điều khiển)
@@ -38,7 +39,8 @@ CREATE TABLE `tbl_devices` (
 -- Dữ liệu ban đầu cho thiết bị
 INSERT INTO `tbl_devices` (`id`, `name`, `current_status`) VALUES
 (1, 'Light', 'OFF'),
-(2, 'Fan', 'OFF');
+(2, 'Fan', 'OFF'),
+(3, 'Alert LED', 'OFF');
 
 -- --------------------------------------------------------------
 -- Bảng 4: tbl_datasensors (Lịch sử dữ liệu đo cảm biến)

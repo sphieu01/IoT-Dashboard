@@ -6,10 +6,16 @@ import com.iot.dashboard.entity.User;
 import com.iot.dashboard.repository.DeviceRepository;
 import com.iot.dashboard.repository.SensorRepository;
 import com.iot.dashboard.repository.UserRepository;
+import com.iot.dashboard.entity.DataSensor;
+import com.iot.dashboard.repository.DataSensorRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Component
 // Kiểm tra xem trong DB đã có sẵn các cảm biến, thiết bị và tài khoản admin chưa, nếu chưa thì thêm vào.
@@ -39,17 +45,21 @@ public class DataInitializer implements CommandLineRunner {
                                 .orElseGet(() -> sensorRepository.save(new Sensor("DHT11", "humidity")));
                 sensorRepository.findByType("light")
                                 .orElseGet(() -> sensorRepository.save(new Sensor("LDR", "light")));
+                sensorRepository.findByType("wind-speed")
+                                .orElseGet(() -> sensorRepository.save(new Sensor("Anemometer", "wind-speed")));
 
-                // 2. Khởi tạo danh mục 2 Thiết bị mặc định nếu chưa có (tbl_devices)
+                // 2. Khởi tạo danh mục 3 Thiết bị mặc định nếu chưa có (tbl_devices)
                 deviceRepository.findByNameIgnoreCase("Light")
                                 .orElseGet(() -> deviceRepository.save(new Device("Light", "OFF")));
                 deviceRepository.findByNameIgnoreCase("Fan")
                                 .orElseGet(() -> deviceRepository.save(new Device("Fan", "OFF")));
+                deviceRepository.findByNameIgnoreCase("Alert LED")
+                                .orElseGet(() -> deviceRepository.save(new Device("Alert LED", "OFF")));
 
                 // 3. Khởi tạo tài khoản Quản trị viên mặc định nếu chưa có (tbl_users)
                 userRepository.findByUsername("admin")
                                 .orElseGet(() -> userRepository.save(new User("admin", "123456", "Administrator", "ADMIN")));
 
-                log.info(" [Initializer] Đã sẵn sàng danh mục cảm biến, thiết bị và tài khoản admin (admin / 123456) trong CSDL.");
+                log.info(" [Initializer] Đã sẵn sàng danh mục cảm biến, thiết bị (Light, Fan, Alert LED) và tài khoản admin trong MySQL.");
         }
 }

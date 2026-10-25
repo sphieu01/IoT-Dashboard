@@ -33,17 +33,39 @@ public class DeviceService {
         this.mqttService = mqttService;
     }
 
-    // Lấy trạng thái tất cả các thiết bị: { "light": true, "fan": false }
+    // Lấy trạng thái tất cả các thiết bị: { "light": true, "fan": false, "alertled": false }
     public Map<String, Boolean> getDeviceStates() {
         Map<String, Boolean> states = new HashMap<>();
         states.put("light", false);
         states.put("fan", false);
+        states.put("alertled", false);
 
         List<Device> list = deviceRepository.findAll();
         for (Device d : list) {
-            states.put(d.getName().toLowerCase(), "ON".equalsIgnoreCase(d.getCurrentStatus()));
+            String key = d.getName().toLowerCase().replace(" ", "").trim();
+            states.put(key, "ON".equalsIgnoreCase(d.getCurrentStatus()));
         }
         return states;
+    }
+
+    // Cập nhật trạng thái đèn cảnh báo Alert LED và ghi vào DB (bảng history + tbl_devices) mỗi khi bật/tắt
+    @Transactional
+    public void updateAlertLedState(boolean isOn) {
+        String devName = "Alert LED";
+        String targetAction = isOn ? "ON" : "OFF";
+
+        Device device = deviceRepository.findByNameIgnoreCase(devName)
+                .orElseGet(() -> deviceRepository.save(new Device(devName, "OFF")));
+
+        // Chỉ ghi vào DB khi trạng thái thực sự thay đổi (từ OFF -> ON hoặc ON -> OFF)
+        if (!targetAction.equalsIgnoreCase(device.getCurrentStatus())) {
+            device.setCurrentStatus(targetAction);
+            deviceRepository.save(device);
+
+            DeviceHistory history = new DeviceHistory(device, targetAction, "SUCCESS", LocalDateTime.now());
+            historyRepository.save(history);
+            System.out.println("🚨 [Device History] Alert LED đã chuyển sang: " + targetAction + " -> Đã lưu vào DB!");
+        }
     }
 
     // Điều khiển bật tắt thiết bị từ Web
@@ -112,6 +134,11 @@ public class DeviceService {
     // Xử lý xác nhận từ ESP32 qua topic 'device/status'
     @Transactional
     public void handleDeviceAck(String deviceName, String status) {
+        if ("Alert LED".equalsIgnoreCase(deviceName) || "alertled".equalsIgnoreCase(deviceName)) {
+            updateAlertLedState("ON".equalsIgnoreCase(status) || "SUCCESS".equalsIgnoreCase(status));
+            return;
+        }
+
         String devName = "Light".equalsIgnoreCase(deviceName) ? "Light" : "Fan";
         String stateUpper = status.toUpperCase();
 

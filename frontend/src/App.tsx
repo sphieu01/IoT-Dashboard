@@ -5,6 +5,7 @@ import DataSensorPage from './pages/DataSensorPage'
 import HistoryPage from './pages/HistoryPage'
 import ProfilePage from './pages/ProfilePage'
 import LoginPage from './pages/LoginPage'
+import AlertChartPage from './pages/AlertChartPage'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { SensorReading, DeviceHistory, DeviceStates } from './types'
 import { iotApiService } from './services/api'
@@ -25,7 +26,7 @@ export default function App() {
   const lastPacketTimeRef = useRef<number>(0)
 
   // Live Chart telemetry (Lấy từ CSDL và cập nhật Realtime qua REST API Polling)
-  const [chartData, setChartData] = useState<{ time: string; temp: number; humidity: number; light: number }[]>([])
+  const [chartData, setChartData] = useState<{ time: string; temp: number; humidity: number; light: number; windSpeed?: number }[]>([])
 
   // Hardware states
   const [devices, setDevices] = useState<DeviceStates>({ light: false, fan: false })
@@ -191,6 +192,8 @@ export default function App() {
         <Route path="/datasensor" element={<DataSensorPage />} />
         <Route path="/data-sensor" element={<Navigate to="/datasensor" replace />} />
         <Route path="/history" element={<HistoryPage />} />
+        <Route path="/alerts" element={<AlertChartPage />} />
+        <Route path="/monthly-alerts" element={<Navigate to="/alerts" replace />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/my-profile" element={<Navigate to="/profile" replace />} />
         <Route path="/myprofile" element={<Navigate to="/profile" replace />} />
