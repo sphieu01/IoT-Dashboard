@@ -4,6 +4,7 @@ import DashboardPage from './pages/DashboardPage'
 import DataSensorPage from './pages/DataSensorPage'
 import HistoryPage from './pages/HistoryPage'
 import ProfilePage from './pages/ProfilePage'
+import AlertChartPage from './pages/AlertChartPage'
 import LoginPage from './pages/LoginPage'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { SensorReading, DeviceHistory, DeviceStates } from './types'
@@ -123,7 +124,13 @@ export default function App() {
   const handleToggleDevice = async (key: string) => {
     if (pendingDevices[key]) return // Đang PENDING thì chặn click dồn
 
-    const deviceName = key === 'light' ? 'Light' : 'Fan'
+    let deviceName = 'Light'
+    if (key === 'fan') {
+      deviceName = 'Fan'
+    } else if (key === 'light2') {
+      deviceName = 'Light 2'
+    }
+
     const targetAction: 'ON' | 'OFF' = !devices[key] ? 'ON' : 'OFF'
 
     // 1. Đánh dấu thiết bị đang PENDING
@@ -191,6 +198,8 @@ export default function App() {
         <Route path="/datasensor" element={<DataSensorPage />} />
         <Route path="/data-sensor" element={<Navigate to="/datasensor" replace />} />
         <Route path="/history" element={<HistoryPage />} />
+        <Route path="/alerts" element={<AlertChartPage />} />
+        <Route path="/monthly-alerts" element={<Navigate to="/alerts" replace />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/my-profile" element={<Navigate to="/profile" replace />} />
         <Route path="/myprofile" element={<Navigate to="/profile" replace />} />

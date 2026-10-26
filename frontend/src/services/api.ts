@@ -206,7 +206,7 @@ export const iotApiService = {
   },
 
   // 5. Gửi lệnh bật/tắt thiết bị tới Backend (chuyển tiếp tới MQTT -> ESP32)
-  async toggleDevice(device: 'Light' | 'Fan', action: 'ON' | 'OFF'): Promise<DeviceHistory | null> {
+  async toggleDevice(device: string, action: 'ON' | 'OFF'): Promise<DeviceHistory | null> {
     try {
       const res = await fetch(`${API_BASE_URL}/devices/control`, {
         method: 'POST',
@@ -219,6 +219,53 @@ export const iotApiService = {
       console.warn('[API] Gui lenh toggle toi backend that bai:', e)
       return null
     }
+  },
+
+  // 6. Lấy ngưỡng ánh sáng cảnh báo x
+  async getLightThreshold(): Promise<number> {
+    try {
+      const res = await fetch(`${API_BASE_URL}/sensors/threshold/light`, {
+        headers: getAuthHeaders(),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        return Number(data.threshold) || 1000
+      }
+    } catch (e) {
+      console.warn('[API] Khong the lay nguong anh sang:', e)
+    }
+    return 1000
+  },
+
+  // 7. Cập nhật ngưỡng ánh sáng cảnh báo x
+  async setLightThreshold(threshold: number): Promise<boolean> {
+    try {
+      const res = await fetch(`${API_BASE_URL}/sensors/threshold/light`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ threshold }),
+      })
+      return res.ok
+    } catch (e) {
+      console.warn('[API] Khong the cap nhat nguong anh sang:', e)
+      return false
+    }
+  },
+
+  // 8. Lấy thống kê số lượng cảnh báo theo ngày trong tháng (cho biểu đồ tháng, có lọc theo led cảnh báo)
+  async getMonthlyAlerts(year = 2026, month = 10, device = 'Alert LED'): Promise<any> {
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/sensors/alerts/monthly?year=${year}&month=${month}&device=${encodeURIComponent(device)}`,
+        { headers: getAuthHeaders() }
+      )
+      if (res.ok) {
+        return await res.json()
+      }
+    } catch (e) {
+      console.warn('[API] Khong the lay thong ke canh bao thang:', e)
+    }
+    return null
   },
 
   // 6. [WEBSOCKET] Giữ lại làm mẫu tham khảo (Hiện tại Frontend sử dụng REST API Polling theo yêu cầu)

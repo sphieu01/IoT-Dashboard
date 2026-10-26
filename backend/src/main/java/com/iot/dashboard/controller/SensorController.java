@@ -13,9 +13,11 @@ import java.util.Map;
 public class SensorController {
 
     private final SensorService sensorService;
+    private final com.iot.dashboard.service.MqttService mqttService;
 
-    public SensorController(SensorService sensorService) {
+    public SensorController(SensorService sensorService, com.iot.dashboard.service.MqttService mqttService) {
         this.sensorService = sensorService;
+        this.mqttService = mqttService;
     }
 
     // 1. Lấy dữ liệu cảm biến (hỗ trợ phân trang, tìm kiếm, lọc)
@@ -39,5 +41,32 @@ public class SensorController {
             @RequestParam(required = false, defaultValue = "15") int limit
     ) {
         return ResponseEntity.ok(sensorService.getLatestChartPoints(limit));
+    }
+
+    // 3. Thống kê số lượng cảnh báo trong từng ngày của tháng (có lọc theo led cảnh báo)
+    @GetMapping("/alerts/monthly")
+    public ResponseEntity<?> getMonthlyAlerts(
+            @RequestParam(required = false, defaultValue = "2026") int year,
+            @RequestParam(required = false, defaultValue = "10") int month,
+            @RequestParam(required = false, defaultValue = "Alert LED") String device
+    ) {
+        return ResponseEntity.ok(sensorService.getMonthlyAlertStatistics(year, month, device));
+    }
+
+    // 4. Lấy ngưỡng ánh sáng cảnh báo hiện tại (x)
+    @GetMapping("/threshold/light")
+    public ResponseEntity<Map<String, Object>> getLightThreshold() {
+        return ResponseEntity.ok(Map.of("threshold", mqttService.getLightThreshold()));
+    }
+
+    // 5. Cập nhật ngưỡng ánh sáng cảnh báo (x) do người dùng tự nhập
+    @PostMapping("/threshold/light")
+    public ResponseEntity<Map<String, Object>> updateLightThreshold(@RequestBody Map<String, Object> body) {
+        if (body.containsKey("threshold")) {
+            double val = Double.parseDouble(body.get("threshold").toString());
+            mqttService.setLightThreshold(val);
+            return ResponseEntity.ok(Map.of("success", true, "threshold", val));
+        }
+        return ResponseEntity.badRequest().body(Map.of("error", "Thiếu tham số threshold"));
     }
 }

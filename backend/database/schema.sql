@@ -38,7 +38,9 @@ CREATE TABLE `tbl_devices` (
 -- Dữ liệu ban đầu cho thiết bị
 INSERT INTO `tbl_devices` (`id`, `name`, `current_status`) VALUES
 (1, 'Light', 'OFF'),
-(2, 'Fan', 'OFF');
+(2, 'Fan', 'OFF'),
+(3, 'Light 2', 'OFF'),
+(4, 'Alert LED', 'OFF');
 
 -- --------------------------------------------------------------
 -- Bảng 4: tbl_datasensors (Lịch sử dữ liệu đo cảm biến)

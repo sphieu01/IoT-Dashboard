@@ -3,14 +3,22 @@
 #include <PubSubClient.h>
 #include "DHT.h"
 
-// --- KHAI BÁO CHÂN CẮM ---
+// --- KHAI BÁO CHÂN CẮM 4 LED (3 ĐÈN ĐIỀU KHIỂN + 1 ĐÈN CẢNH BÁO) ---
 #define DPIN 4        
 #define DTYPE DHT11   
 #define LDR_PIN 32    
-#define LED1_PIN 5    // Đèn 1 cắm ở D5
-#define LED2_PIN 18   // Đèn 2 cắm ở D18
+#define LED1_PIN 5        // Đèn điều khiển 1 (Light)
+#define LED2_PIN 18       // Đèn điều khiển 2 (Fan)
+#define LED3_PIN 19       // Đèn điều khiển 3 (Light 2)
+#define LED_ALERT_PIN 21  // Đèn cảnh báo ánh sáng > x (tự động nháy khi vượt ngưỡng)
 
 DHT dht(DPIN, DTYPE);
+
+// --- BIẾN CẢNH BÁO ÁNH SÁNG > x (x người dùng tự cấu hình từ Web) ---
+float lightThreshold = 1000.0; // Ngưỡng ánh sáng mặc định (LUX)
+bool isLightAlert = false;
+unsigned long lastAlertBlink = 0;
+bool alertLedState = LOW;
 
 // ==============================================================
 // --- CẤU HÌNH 2 MẠNG WI-FI & IP MQTT BROKER TƯƠNG ỨNG ---
@@ -22,8 +30,8 @@ const char* MQTT_SERVER_1 = "172.20.10.6";  // IP Laptop khi phát Hotspot iPhon
 
 // 2. Mạng WiFi ở nhà (Tự động phát hiện trên Laptop: "Green House", IP: 192.168.1.35)
 const char* WIFI_2_SSID = "Green House";
-const char* WIFI_2_PASS = "0606060408"; // <-- ĐIỀN MẬT KHẨU WIFI GREEN HOUSE VÀO ĐÂY
-const char* MQTT_SERVER_2 = "192.168.1.35";         // IP Laptop khi bắt WiFi nhà (xem bằng lệnh ipconfig)
+const char* WIFI_2_PASS = "0606060408"; 
+const char* MQTT_SERVER_2 = "192.168.1.35"; // IP Laptop khi bắt WiFi nhà
 
 const int mqtt_port = 1883;
 
@@ -42,7 +50,6 @@ void setupMqttServer() {
   String connectedSSID = WiFi.SSID();
   IPAddress localIP = WiFi.localIP();
 
-  // Nhận diện theo tên SSID hoặc theo dải IP (172.x là Hotspot, 192.x là WiFi nhà)
   if (localIP[0] == 172) {
     current_mqtt_server = MQTT_SERVER_1;
     Serial.println("[MẠNG] Đang kết nối Hotspot (" + String(WIFI_1_SSID) + ")");
@@ -60,17 +67,19 @@ void setupMqttServer() {
   client.setCallback(callback);
 }
 
-// HÀM BÁO CÁO TRẠNG THÁI HIỆN TẠI CỦA 2 ĐÈN LÊN TOPIC device/status
+// HÀM BÁO CÁO TRẠNG THÁI HIỆN TẠI CỦA CẢ 4 ĐÈN LÊN TOPIC device/status
 void publishDeviceStatus() {
   String s1 = (digitalRead(LED1_PIN) == HIGH) ? "on" : "off";
   String s2 = (digitalRead(LED2_PIN) == HIGH) ? "on" : "off";
-  String payload = "{\"led1\":\"" + s1 + "\",\"led2\":\"" + s2 + "\"}";
+  String s3 = (digitalRead(LED3_PIN) == HIGH) ? "on" : "off";
+  String sAlert = isLightAlert ? "on" : "off";
+  String payload = "{\"led1\":\"" + s1 + "\",\"led2\":\"" + s2 + "\",\"led3\":\"" + s3 + "\",\"alertLed\":\"" + sAlert + "\"}";
   client.publish("device/status", payload.c_str());
-  Serial.print("-> Đã đồng bộ trạng thái thiết bị lên server: ");
+  Serial.print("-> Đã đồng bộ trạng thái 4 thiết bị lên server: ");
   Serial.println(payload);
 }
 
-// HÀM CALLBACK: XỬ LÝ LỆNH BẬT TẮT 2 ĐÈN ĐỘC LẬP
+// HÀM CALLBACK: XỬ LÝ LỆNH BẬT TẮT 3 ĐÈN ĐỘC LẬP VÀ CẬP NHẬT NGƯỠNG
 void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print("Co lenh moi tu topic [");
   Serial.print(topic);
@@ -81,40 +90,74 @@ void callback(char* topic, byte* payload, unsigned int length) {
     messageTemp += (char)payload[i];
   }
   
-  // Chuyển tất cả về chữ thường để dễ lọc
   messageTemp.toLowerCase(); 
   Serial.println(messageTemp);
 
   if (String(topic) == "device/control") {
-    // --- XỬ LÝ LỆNH KIỂM TRA TRẠNG THÁI TỪ SERVER ---
+    // --- 1. XỬ LÝ LỆNH KIỂM TRA TRẠNG THÁI TỪ SERVER ---
     if (messageTemp.indexOf("status") >= 0 || messageTemp.indexOf("check") >= 0) {
       Serial.println("-> Nhận yêu cầu kiểm tra trạng thái từ Server!");
       publishDeviceStatus();
       return;
     }
 
-    // --- XỬ LÝ ĐÈN 1 ---
+    // --- 2. CẬP NHẬT NGƯỠNG ÁNH SÁNG x TỪ WEB ---
+    int threshIdx = messageTemp.indexOf("lightthreshold");
+    if (threshIdx >= 0) {
+      int colonIdx = messageTemp.indexOf(":", threshIdx);
+      if (colonIdx >= 0) {
+        String numStr = "";
+        for (int j = colonIdx + 1; j < messageTemp.length(); j++) {
+          char c = messageTemp[j];
+          if ((c >= '0' && c <= '9') || c == '.') {
+            numStr += c;
+          } else if (numStr.length() > 0) {
+            break;
+          }
+        }
+        if (numStr.length() > 0) {
+          lightThreshold = numStr.toFloat();
+          Serial.print("-> Đã cập nhật ngưỡng ánh sáng mới: ");
+          Serial.print(lightThreshold);
+          Serial.println(" LUX");
+        }
+      }
+    }
+
+    // --- 3. XỬ LÝ ĐÈN 1 (Light) ---
     if (messageTemp.indexOf("led1: on") >= 0 || messageTemp.indexOf("\"led1\":\"on\"") >= 0) {
       digitalWrite(LED1_PIN, HIGH);
-      Serial.println("-> Đã BẬT đèn 1!");
+      Serial.println("-> Đã BẬT đèn 1 (Light)!");
       client.publish("device/status", "{\"led1\":\"on\"}");
     } 
     else if (messageTemp.indexOf("led1: off") >= 0 || messageTemp.indexOf("\"led1\":\"off\"") >= 0) {
       digitalWrite(LED1_PIN, LOW);
-      Serial.println("-> Đã TẮT đèn 1!");
+      Serial.println("-> Đã TẮT đèn 1 (Light)!");
       client.publish("device/status", "{\"led1\":\"off\"}");
     }
 
-    // --- XỬ LÝ ĐÈN 2 ---
+    // --- 4. XỬ LÝ ĐÈN 2 (Fan) ---
     if (messageTemp.indexOf("led2: on") >= 0 || messageTemp.indexOf("\"led2\":\"on\"") >= 0) {
       digitalWrite(LED2_PIN, HIGH);
-      Serial.println("-> Đã BẬT đèn 2!");
+      Serial.println("-> Đã BẬT đèn 2 (Fan)!");
       client.publish("device/status", "{\"led2\":\"on\"}");
     } 
     else if (messageTemp.indexOf("led2: off") >= 0 || messageTemp.indexOf("\"led2\":\"off\"") >= 0) {
       digitalWrite(LED2_PIN, LOW);
-      Serial.println("-> Đã TẮT đèn 2!");
+      Serial.println("-> Đã TẮT đèn 2 (Fan)!");
       client.publish("device/status", "{\"led2\":\"off\"}");
+    }
+
+    // --- 5. XỬ LÝ ĐÈN 3 (Light 2) ---
+    if (messageTemp.indexOf("led3: on") >= 0 || messageTemp.indexOf("\"led3\":\"on\"") >= 0) {
+      digitalWrite(LED3_PIN, HIGH);
+      Serial.println("-> Đã BẬT đèn 3 (Light 2)!");
+      client.publish("device/status", "{\"led3\":\"on\"}");
+    } 
+    else if (messageTemp.indexOf("led3: off") >= 0 || messageTemp.indexOf("\"led3\":\"off\"") >= 0) {
+      digitalWrite(LED3_PIN, LOW);
+      Serial.println("-> Đã TẮT đèn 3 (Light 2)!");
+      client.publish("device/status", "{\"led3\":\"off\"}");
     }
   }
 }
@@ -123,15 +166,19 @@ void setup() {
   Serial.begin(9600);
   dht.begin();
   
-  // Khai báo Output và tắt cả 2 đèn lúc mới khởi động
+  // Khai báo Output và tắt cả 4 đèn lúc mới khởi động (LED1, LED2, LED3, LED Alert)
   pinMode(LED1_PIN, OUTPUT);
   pinMode(LED2_PIN, OUTPUT);
+  pinMode(LED3_PIN, OUTPUT);
+  pinMode(LED_ALERT_PIN, OUTPUT);
   digitalWrite(LED1_PIN, LOW);
   digitalWrite(LED2_PIN, LOW);
+  digitalWrite(LED3_PIN, LOW);
+  digitalWrite(LED_ALERT_PIN, LOW);
   
-  // Đăng ký cả 2 mạng Wi-Fi vào danh sách tự động tìm kiếm (WiFiMulti)
+  // Đăng ký mạng Wi-Fi
   wifiMulti.addAP(WIFI_1_SSID, WIFI_1_PASS);
-  // wifiMulti.addAP(WIFI_2_SSID, WIFI_2_PASS);
+  wifiMulti.addAP(WIFI_2_SSID, WIFI_2_PASS);
 
   Serial.println("\nĐang quét và kết nối Wi-Fi (Hotspot hoặc WiFi nhà)...");
   while (wifiMulti.run() != WL_CONNECTED) {
@@ -145,14 +192,12 @@ void setup() {
 
 void reconnect() {
   while (!client.connected()) {
-    // Nếu Wi-Fi bị đứt, đợi WiFiMulti tự kết nối lại trước
     if (wifiMulti.run() != WL_CONNECTED) {
       Serial.println("Mất kết nối Wi-Fi, đang tìm kiếm lại mạng...");
       delay(2000);
       continue;
     }
 
-    // Cập nhật lại MQTT server theo mạng hiện tại (phòng trường hợp vừa đổi mạng)
     setupMqttServer();
 
     Serial.print("Đang ket noi MQTT Broker (" + String(current_mqtt_server) + ")... ");
@@ -162,7 +207,7 @@ void reconnect() {
       Serial.println("Thanh cong!");
       client.subscribe("device/control"); // Đăng ký nhận lệnh
 
-      // Đồng bộ trạng thái thực tế của 2 đèn lên server ngay khi kết nối lại
+      // Đồng bộ trạng thái thực tế của cả 4 đèn lên server ngay khi kết nối lại
       publishDeviceStatus();
     } else {
       Serial.print("That bai, ma loi = ");
@@ -174,7 +219,6 @@ void reconnect() {
 }
 
 void loop() {
-  // Tự động duy trì và chuyển đổi mạng nếu 1 mạng bị mất sóng
   if (wifiMulti.run() != WL_CONNECTED) {
     delay(500);
     return;
@@ -183,17 +227,50 @@ void loop() {
   if (!client.connected()) {
     reconnect();
   }
-  client.loop();  // ESP32 liên tục kiểm tra hòm thư xem có tin nhắn hay lệnh mới không.
+  client.loop(); 
 
-  // LUỒNG PUBLISH: Gửi dữ liệu mỗi 2 giây ---
+  // --- XỬ LÝ NHÁY ĐÈN CẢNH BÁO KHI ÁNH SÁNG > x (Chu kỳ 150ms) ---
   unsigned long now = millis();
+  if (isLightAlert) {
+    if (now - lastAlertBlink >= 150) {
+      lastAlertBlink = now;
+      alertLedState = !alertLedState;
+      digitalWrite(LED_ALERT_PIN, alertLedState);
+    }
+  } else {
+    digitalWrite(LED_ALERT_PIN, LOW);
+    alertLedState = LOW;
+  }
+
+  // --- LUỒNG PUBLISH DỮ LIỆU CẢM BIẾN MỖI 2 GIÂY ---
   if (now - lastMsg > 2000) {
     lastMsg = now;
     
     float tc = dht.readTemperature(false);
     float hu = dht.readHumidity();
-    // Đọc giá trị thô từ chân LDR (0 - 4095). Backend Spring Boot sẽ tự động đảo chiều (4095 - light)
     int lightRaw = analogRead(LDR_PIN);
+
+    // Tính giá trị ánh sáng thực tế đảo chiều (0 - 4095 LUX)
+    float lightLux = (float)max(0, 4095 - lightRaw);
+
+    // KIỂM TRA NGƯỠNG CẢNH BÁO ÁNH SÁNG > x
+    if (lightLux > lightThreshold) {
+      if (!isLightAlert) {
+        isLightAlert = true;
+        client.publish("device/status", "{\"alertLed\":\"on\"}");
+        Serial.print("⚠️ [CẢNH BÁO] Ánh sáng ");
+        Serial.print(lightLux);
+        Serial.print(" LUX vượt ngưỡng ");
+        Serial.print(lightThreshold);
+        Serial.println(" LUX -> Đèn cảnh báo nháy liên tiếp!");
+      }
+    } else {
+      if (isLightAlert) {
+        isLightAlert = false;
+        client.publish("device/status", "{\"alertLed\":\"off\"}");
+        Serial.println("✅ [AN TOÀN] Ánh sáng đã trở về mức an toàn.");
+      }
+    }
 
     if (isnan(tc) || isnan(hu)) return;
 
@@ -203,6 +280,6 @@ void loop() {
     payload += "\"light\":" + String(lightRaw);
     payload += "}";
 
-    client.publish("data/sensors", payload.c_str()); // Gửi gói tin lên topic data/sensors
+    client.publish("data/sensors", payload.c_str()); 
   }
 }

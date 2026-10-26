@@ -15,6 +15,7 @@ export const USER_INFO: UserProfileInfo = {
 export const DEVICES_CONFIG: DeviceConfig[] = [
   { key: 'light', label: 'Light', icon: '💡' },
   { key: 'fan', label: 'Fan', icon: '🌀' },
+  { key: 'light2', label: 'Light 2', icon: '🏮' },
 ]
 
 export const PAGE_TITLES: Record<PageTab, string> = {
@@ -22,4 +23,5 @@ export const PAGE_TITLES: Record<PageTab, string> = {
   'data-sensor': 'Data Sensor',
   history: 'History',
   'my-profile': 'My Profile',
+  alerts: 'Alert Chart',
 }

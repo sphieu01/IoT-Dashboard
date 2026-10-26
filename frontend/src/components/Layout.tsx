@@ -38,6 +38,7 @@ export default function Layout({ children, currentUser, onLogout }: LayoutProps)
   const isDashboard = pathname === '/' || pathname === '/dashboard'
   const isDataSensor = pathname === '/datasensor' || pathname === '/data-sensor'
   const isHistory = pathname === '/history'
+  const isAlerts = pathname === '/alerts' || pathname === '/monthly-alerts'
   const isProfile = pathname === '/profile' || pathname === '/my-profile' || pathname === '/myprofile'
 
   const displayName = currentUser?.fullName || currentUser?.username || USER_INFO.name
@@ -65,6 +66,11 @@ export default function Layout({ children, currentUser, onLogout }: LayoutProps)
             label="History"
             to="/history"
             active={isHistory}
+          />
+          <NavItem
+            label="Alert Chart"
+            to="/alerts"
+            active={isAlerts}
           />
           <NavItem
             label="My Profile"

@@ -45,6 +45,10 @@ public class DataInitializer implements CommandLineRunner {
                                 .orElseGet(() -> deviceRepository.save(new Device("Light", "OFF")));
                 deviceRepository.findByNameIgnoreCase("Fan")
                                 .orElseGet(() -> deviceRepository.save(new Device("Fan", "OFF")));
+                deviceRepository.findByNameIgnoreCase("Light 2")
+                                .orElseGet(() -> deviceRepository.save(new Device("Light 2", "OFF")));
+                deviceRepository.findByNameIgnoreCase("Alert LED")
+                                .orElseGet(() -> deviceRepository.save(new Device("Alert LED", "OFF")));
 
                 // 3. Khởi tạo tài khoản Quản trị viên mặc định nếu chưa có (tbl_users)
                 userRepository.findByUsername("admin")

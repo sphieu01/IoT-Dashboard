@@ -78,7 +78,9 @@ public class DeviceHistoryService {
                 .filter(h -> {
                     if (device != null && !device.trim().isEmpty() && !"all".equalsIgnoreCase(device)) {
                         String devName = h.getDevice() != null ? h.getDevice().getName() : "";
-                        if (!device.equalsIgnoreCase(devName))
+                        String normFilter = device.replaceAll("[\\s_-]", "").toLowerCase();
+                        String normDev = devName.replaceAll("[\\s_-]", "").toLowerCase();
+                        if (!normFilter.equals(normDev))
                             return false;
                     }
                     if (action != null && !action.trim().isEmpty() && !"all".equalsIgnoreCase(action)) {

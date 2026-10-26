@@ -157,12 +157,41 @@ public class MqttService implements MqttCallback {
         }
     }
 
+    // Ngưỡng ánh sáng cảnh báo do người dùng thiết lập (mặc định 1000.0 LUX)
+    private volatile double lightThreshold = 1000.0;
+
+    public double getLightThreshold() {
+        return lightThreshold;
+    }
+
+    public void setLightThreshold(double threshold) {
+        this.lightThreshold = threshold;
+        log.info("[MQTT] Cập nhật ngưỡng ánh sáng cảnh báo: {} lux", threshold);
+        // Gửi ngưỡng mới tới ESP32 qua MQTT
+        if (client != null && client.isConnected()) {
+            try {
+                String payload = String.format(java.util.Locale.US, "{\"lightThreshold\":%.1f}", threshold);
+                MqttMessage message = new MqttMessage(payload.getBytes(StandardCharsets.UTF_8));
+                message.setQos(1);
+                client.publish(topicControl, message);
+                log.info("[MQTT] Đã gửi cấu hình ngưỡng ánh sáng tới [{}]: {}", topicControl, payload);
+            } catch (Exception e) {
+                log.error("[MQTT] Gửi ngưỡng ánh sáng thất bại: {}", e.getMessage());
+            }
+        }
+    }
+
     // Gửi lệnh điều khiển bật/tắt thiết bị qua topic 'device/control'
     public void publishDeviceControl(String deviceName, String action) {
-        String ledKey = "Light".equalsIgnoreCase(deviceName) ? "led1" : "led2"; // light => led1
+        String ledKey = "led1";
+        if ("Fan".equalsIgnoreCase(deviceName)) {
+            ledKey = "led2";
+        } else if ("Light 2".equalsIgnoreCase(deviceName) || "light2".equalsIgnoreCase(deviceName)) {
+            ledKey = "led3";
+        }
         String actStr = action.toLowerCase();
 
-        // Tạo payload JSON: {"led1":"on"} hoặc {"led2":"off"}
+        // Tạo payload JSON: {"led1":"on"}, {"led2":"off"}, hoặc {"led3":"on"}
         String payload = String.format("{\"%s\":\"%s\"}", ledKey, actStr);
 
         if (client != null && client.isConnected()) {
@@ -180,8 +209,6 @@ public class MqttService implements MqttCallback {
                 // Mô phỏng độ trễ phần cứng ACK sau 1.2s nếu broker chưa bật
                 scheduler.schedule(() -> {
                     deviceService.handleDeviceAck(deviceName, actStr);
-                    // [WEBSOCKET] Tạm tắt:
-                    // broadcastDeviceAck(deviceName, action.toUpperCase());
                 }, 1200, TimeUnit.MILLISECONDS);
             }
         }
@@ -194,8 +221,6 @@ public class MqttService implements MqttCallback {
     }
 
     // Xử lý gói tin nhận được
-    // Cứ khi nào có tin nhắn đến hộp thư đã đăng ký, hãy tự động kích hoạt hàm
-    // messageArrived(...)
     @Override
     public void messageArrived(String topic, MqttMessage message) {
         String payload = new String(message.getPayload(), StandardCharsets.UTF_8);
@@ -208,9 +233,6 @@ public class MqttService implements MqttCallback {
                 if (!isEspConnected) {
                     isEspConnected = true;
                     log.info("🟢 [ESP32 Watchdog] Đã nhận tín hiệu từ ESP32 -> Đánh dấu ESP32 ONLINE");
-                    // [WEBSOCKET] Tạm tắt vì Frontend tự kiểm tra qua REST API Polling:
-                    // webSocketHandler.broadcast("{\"type\":\"ESP_STATUS\",\"status\":\"ONLINE\"}");
-                    // Yêu cầu ESP32 phản hồi trạng thái thiết bị để đồng bộ toggle với Web
                     requestDeviceStatusCheck();
                 }
 
@@ -223,59 +245,32 @@ public class MqttService implements MqttCallback {
                 Double temp = (double) Math.round(rawTemp * 10.0) / 10.0;
                 Double humid = (double) Math.round(rawHumid * 10.0) / 10.0;
 
-                // Đảo chiều quang trở: ESP32 ADC 12-bit (0 - 4095) và làm tròn số nguyên cho
-                // Ánh sáng
+                // Đảo chiều quang trở: ESP32 ADC 12-bit (0 - 4095) và làm tròn số nguyên cho Ánh sáng
                 Double light = (double) Math.round(Math.max(0.0, 4095.0 - rawLight));
 
                 // Lưu vào database và lấy ra danh sách bản ghi với ID tự tăng thật
-                java.util.List<com.iot.dashboard.entity.DataSensor> savedList = sensorService.saveReading(temp, humid,
-                        light);
+                sensorService.saveReading(temp, humid, light);
 
-                /*
-                 * [WEBSOCKET] Tạm tắt broadcast vì Frontend đã chuyển sang gọi REST API
-                 * /api/sensors/latest mỗi 2s:
-                 * com.iot.dashboard.entity.DataSensor savedTemp = savedList.get(0);
-                 * com.iot.dashboard.entity.DataSensor savedHum = savedList.get(1);
-                 * com.iot.dashboard.entity.DataSensor savedLight = savedList.get(2);
-                 * 
-                 * String fullTime = savedTemp.getMeasuredAt().format(DateTimeFormatter.
-                 * ofPattern("yyyy-MM-dd HH:mm:ss"));
-                 * String timeStr =
-                 * savedTemp.getMeasuredAt().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-                 * 
-                 * String wsMsg = String.format(
-                 * java.util.Locale.US,
-                 * "{\"type\":\"SENSOR_UPDATE\",\"time\":\"%s\",\"temp\":%.1f,\"humidity\":%.1f,\"light\":%.1f,"
-                 * +
-                 * "\"records\":[" +
-                 * "{\"id\":%d,\"sensorType\":\"Light\",\"value\":%.1f,\"fullTime\":\"%s\"}," +
-                 * "{\"id\":%d,\"sensorType\":\"Humidity\",\"value\":%.1f,\"fullTime\":\"%s\"},"
-                 * +
-                 * "{\"id\":%d,\"sensorType\":\"Temperature\",\"value\":%.1f,\"fullTime\":\"%s\"}"
-                 * +
-                 * "]}",
-                 * timeStr, temp, humid, light,
-                 * savedLight.getId(), light, fullTime,
-                 * savedHum.getId(), humid, fullTime,
-                 * savedTemp.getId(), temp, fullTime);
-                 * webSocketHandler.broadcast(wsMsg);
-                 */
+                // KIỂM TRA CẢNH BÁO: khi ánh sáng > x (người dùng tự nhập) -> Bật Alert LED và ghi vào DB
+                boolean isLightAlert = (light > lightThreshold);
+                deviceService.updateAlertLedState(isLightAlert);
             }
 
             // 2. Phản hồi trạng thái xác nhận từ ESP32 (device/status)
             if (topicStatus.equals(topic)) {
                 JsonNode json = objectMapper.readTree(payload);
                 if (json.has("led1")) {
-                    String status = json.get("led1").asText(); // "on" / "off"
-                    deviceService.handleDeviceAck("Light", status);
-                    // [WEBSOCKET] Tạm tắt:
-                    // broadcastDeviceAck("Light", status.toUpperCase());
+                    deviceService.handleDeviceAck("Light", json.get("led1").asText());
                 }
                 if (json.has("led2")) {
-                    String status = json.get("led2").asText();
-                    deviceService.handleDeviceAck("Fan", status);
-                    // [WEBSOCKET] Tạm tắt:
-                    // broadcastDeviceAck("Fan", status.toUpperCase());
+                    deviceService.handleDeviceAck("Fan", json.get("led2").asText());
+                }
+                if (json.has("led3")) {
+                    deviceService.handleDeviceAck("Light 2", json.get("led3").asText());
+                }
+                if (json.has("alertLed") || json.has("ledAlert")) {
+                    String status = json.has("alertLed") ? json.get("alertLed").asText() : json.get("ledAlert").asText();
+                    deviceService.updateAlertLedState("on".equalsIgnoreCase(status));
                 }
             }
         } catch (Exception e) {

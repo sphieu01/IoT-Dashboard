@@ -23,12 +23,15 @@ public class SensorService {
 
     private final DataSensorRepository dataSensorRepository;
     private final SensorRepository sensorRepository;
+    private final com.iot.dashboard.repository.DeviceHistoryRepository historyRepository;
     private final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss");
     private final DateTimeFormatter fullTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    public SensorService(DataSensorRepository dataSensorRepository, SensorRepository sensorRepository) {
+    public SensorService(DataSensorRepository dataSensorRepository, SensorRepository sensorRepository,
+                         com.iot.dashboard.repository.DeviceHistoryRepository historyRepository) {
         this.dataSensorRepository = dataSensorRepository;
         this.sensorRepository = sensorRepository;
+        this.historyRepository = historyRepository;
     }
 
     private Sensor getOrCreateSensor(String name, String type) {
@@ -220,5 +223,60 @@ public class SensorService {
         response.put("currentPage", safePage);
 
         return response;
+    }
+
+    // Thống kê số lượng cảnh báo trong từng ngày của tháng (cho biểu đồ tháng, có lọc theo led cảnh báo)
+    public Map<String, Object> getMonthlyAlertStatistics(int year, int month, String device) {
+        java.time.YearMonth yearMonth = java.time.YearMonth.of(year, month);
+        LocalDateTime startOfMonth = yearMonth.atDay(1).atStartOfDay();
+        LocalDateTime endOfMonth = yearMonth.atEndOfMonth().atTime(23, 59, 59);
+
+        String targetDevice = (device == null || device.trim().isEmpty() || "all".equalsIgnoreCase(device))
+                ? "Alert LED"
+                : device.trim();
+
+        List<com.iot.dashboard.entity.DeviceHistory> histories = historyRepository
+                .findByDevice_NameIgnoreCaseAndExecutedAtBetween(targetDevice, startOfMonth, endOfMonth);
+
+        int daysInMonth = yearMonth.lengthOfMonth();
+        int[] dailyCounts = new int[daysInMonth + 1];
+
+        for (com.iot.dashboard.entity.DeviceHistory h : histories) {
+            // Đếm các lần kích hoạt bật đèn cảnh báo
+            if ("ON".equalsIgnoreCase(h.getAction())) {
+                int day = h.getExecutedAt().getDayOfMonth();
+                dailyCounts[day]++;
+            }
+        }
+
+        List<Map<String, Object>> dailyList = new ArrayList<>();
+        int totalAlerts = 0;
+        int peakDay = 1;
+        int peakCount = 0;
+
+        for (int day = 1; day <= daysInMonth; day++) {
+            int count = dailyCounts[day];
+            totalAlerts += count;
+            if (count > peakCount) {
+                peakCount = count;
+                peakDay = day;
+            }
+            Map<String, Object> d = new HashMap<>();
+            d.put("day", day);
+            d.put("date", String.format("%02d/%02d/%04d", day, month, year));
+            d.put("alertCount", count);
+            dailyList.add(d);
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("year", year);
+        result.put("month", month);
+        result.put("device", targetDevice);
+        result.put("totalAlerts", totalAlerts);
+        result.put("peakDay", peakDay);
+        result.put("peakCount", peakCount);
+        result.put("dailyCounts", dailyList);
+
+        return result;
     }
 }

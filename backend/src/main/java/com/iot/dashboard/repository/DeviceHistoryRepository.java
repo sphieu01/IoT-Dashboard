@@ -25,4 +25,9 @@ public interface DeviceHistoryRepository extends JpaRepository<DeviceHistory, Lo
 
     // Tìm tất cả bản ghi có status (PENDING) trước thời điểm threshold để xử lý timeout 5s
     List<DeviceHistory> findByStatusIgnoreCaseAndExecutedAtBefore(String status, java.time.LocalDateTime threshold);
+
+    // Tìm lịch sử trong khoảng thời gian để thống kê cảnh báo
+    List<DeviceHistory> findByExecutedAtBetween(java.time.LocalDateTime start, java.time.LocalDateTime end);
+
+    List<DeviceHistory> findByDevice_NameIgnoreCaseAndExecutedAtBetween(String deviceName, java.time.LocalDateTime start, java.time.LocalDateTime end);
 }
