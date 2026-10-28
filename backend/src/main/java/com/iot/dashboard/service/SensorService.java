@@ -36,38 +36,49 @@ public class SensorService {
                 .orElseGet(() -> sensorRepository.save(new Sensor(name, type)));
     }
 
-    // Lưu bản ghi cảm biến mới nhận từ ESP32 vào tbl_datasensors (tách thành 3 bản
-    // ghi chuẩn hóa)
+    // Lưu bản ghi cảm biến mới nhận từ ESP32 vào tbl_datasensors (tách thành 4 bản ghi chuẩn hóa)
     @Transactional
-    public List<DataSensor> saveReading(Double temp, Double humidity, Double light) {
+    public List<DataSensor> saveReading(Double temp, Double humidity, Double light, Double co2) {
         LocalDateTime now = LocalDateTime.now();
 
         Sensor sTemp = getOrCreateSensor("DHT11", "temperature");
         Sensor sHum = getOrCreateSensor("DHT11", "humidity");
         Sensor sLight = getOrCreateSensor("LDR", "light");
+        Sensor sCo2 = getOrCreateSensor("MQ-135", "co2");
 
         float roundedTemp = temp != null ? (float) (Math.round(temp * 10.0) / 10.0) : 0.0f;
         float roundedHum = humidity != null ? (float) (Math.round(humidity * 10.0) / 10.0) : 0.0f;
         float roundedLight = light != null ? (float) Math.round(light) : 0.0f;
+        float roundedCo2 = co2 != null ? (float) Math.round(co2) : 400.0f;
 
         DataSensor dTemp = new DataSensor(sTemp, roundedTemp, now);
         DataSensor dHum = new DataSensor(sHum, roundedHum, now);
         DataSensor dLight = new DataSensor(sLight, roundedLight, now);
+        DataSensor dCo2 = new DataSensor(sCo2, roundedCo2, now);
 
-        return dataSensorRepository.saveAll(Arrays.asList(dTemp, dHum, dLight));
+        return dataSensorRepository.saveAll(Arrays.asList(dTemp, dHum, dLight, dCo2));
     }
 
-    // Lấy danh sách điểm cho biểu đồ LiveChart (15 điểm mới nhất sắp xếp theo thời
-    // gian tăng dần)
+    @Transactional
+    public List<DataSensor> saveReading(Double temp, Double humidity, Double light) {
+        // Tự động mô phỏng giá trị CO2 thực tế (400 - 650 ppm) nếu chưa có cảm biến vật lý
+        double simulatedCo2 = 400.0 + (Math.random() * 250.0);
+        return saveReading(temp, humidity, light, simulatedCo2);
+    }
+
+    // Lấy danh sách điểm cho 4 biểu đồ LiveChart (15 điểm mới nhất sắp xếp theo thời gian tăng dần)
     public List<LiveChartPointDto> getLatestChartPoints(int limit) {
-        // Mỗi chu kỳ đo gồm 3 bản ghi (temp, hum, light) -> lấy tối đa 45 bản ghi
-        List<DataSensor> list = dataSensorRepository.findTop45ByOrderByMeasuredAtDesc();
+        // Mỗi chu kỳ đo gồm 4 bản ghi (temp, hum, light, co2) -> lấy tối đa 60 bản ghi
+        List<DataSensor> list = dataSensorRepository.findTop60ByOrderByMeasuredAtDesc();
+        if (list.isEmpty()) {
+            list = dataSensorRepository.findTop45ByOrderByMeasuredAtDesc();
+        }
 
         // Nhóm các bản ghi theo thời điểm đo (giữ thứ tự chèn)
         Map<String, double[]> grouped = new LinkedHashMap<>();
-        for (DataSensor d : list) { // gom nhóm cùng thời gian
+        for (DataSensor d : list) {
             String timeKey = d.getMeasuredAt().format(timeFormatter);
-            grouped.putIfAbsent(timeKey, new double[] { 0.0, 0.0, 0.0 }); // [temp, hum, light]
+            grouped.putIfAbsent(timeKey, new double[] { 0.0, 0.0, 0.0, 0.0 }); // [temp, hum, light, co2]
             double[] values = grouped.get(timeKey);
 
             String type = d.getSensor() != null ? d.getSensor().getType().toLowerCase() : "";
@@ -77,26 +88,39 @@ public class SensorService {
                 values[1] = d.getValue();
             } else if (type.contains("light")) {
                 values[2] = d.getValue();
+            } else if (type.contains("co2")) {
+                values[3] = d.getValue();
             }
         }
-        // chuẩn hóa
+
+        // Chuẩn hóa DTO
         List<LiveChartPointDto> result = new ArrayList<>();
         for (Map.Entry<String, double[]> entry : grouped.entrySet()) {
             double[] val = entry.getValue();
             double roundedTemp = (double) Math.round(val[0] * 10.0) / 10.0;
             double roundedHum = (double) Math.round(val[1] * 10.0) / 10.0;
             double roundedLight = (double) Math.round(val[2]);
-            result.add(new LiveChartPointDto(entry.getKey(), roundedTemp, roundedHum, roundedLight));
+            double roundedCo2 = (double) Math.round(val[3] > 0 ? val[3] : 450.0);
+            result.add(new LiveChartPointDto(entry.getKey(), roundedTemp, roundedHum, roundedLight, roundedCo2));
         }
 
-        // Đảo ngược lại để theo thứ tự thời gian từ cũ -> mới (trái sang phải trên biểu
-        // đồ)
+        // Đảo ngược lại để theo thứ tự thời gian từ cũ -> mới (trái sang phải trên biểu đồ)
         Collections.reverse(result);
 
         if (result.size() > limit) {
             return result.subList(result.size() - limit, result.size());
         }
         return result;
+    }
+
+    // Đếm số lần vượt ngưỡng từ CSDL MySQL cho 4 cảm biến
+    public Map<String, Long> getExceedanceCounts(Double tempThresh, Double humThresh, Double lightThresh, Double co2Thresh) {
+        Map<String, Long> counts = new LinkedHashMap<>();
+        counts.put("temperature", tempThresh != null ? dataSensorRepository.countBySensorTypeAndValueGreaterThan("temperature", tempThresh.floatValue()) : 0L);
+        counts.put("humidity", humThresh != null ? dataSensorRepository.countBySensorTypeAndValueGreaterThan("humidity", humThresh.floatValue()) : 0L);
+        counts.put("light", lightThresh != null ? dataSensorRepository.countBySensorTypeAndValueGreaterThan("light", lightThresh.floatValue()) : 0L);
+        counts.put("co2", co2Thresh != null ? dataSensorRepository.countBySensorTypeAndValueGreaterThan("co2", co2Thresh.floatValue()) : 0L);
+        return counts;
     }
 
     // Lấy dữ liệu cho trang DataSensorPage từ bảng tbl_datasensors
@@ -130,6 +154,8 @@ public class SensorService {
                             displaySensor = "Humidity";
                         } else if (type.contains("light")) {
                             displaySensor = "Light";
+                        } else if (type.contains("co2")) {
+                            displaySensor = "CO2";
                         }
                         return new SensorFlatDto(
                                 d.getId(),
@@ -162,6 +188,8 @@ public class SensorService {
                         displaySensor = "Humidity";
                     } else if (type.contains("light")) {
                         displaySensor = "Light";
+                    } else if (type.contains("co2")) {
+                        displaySensor = "CO2";
                     }
 
                     double roundedVal = (double) Math.round(d.getValue() * 10.0) / 10.0;
@@ -176,6 +204,9 @@ public class SensorService {
                         return valStr.contains(q) || intValStr.contains(q);
                     } else if ("light".equalsIgnoreCase(searchType)) {
                         if (!"light".equalsIgnoreCase(displaySensor)) return false;
+                        return valStr.contains(q) || intValStr.contains(q);
+                    } else if ("co2".equalsIgnoreCase(searchType)) {
+                        if (!"co2".equalsIgnoreCase(displaySensor)) return false;
                         return valStr.contains(q) || intValStr.contains(q);
                     } else if ("time".equalsIgnoreCase(searchType)) {
                         return fullTime.toLowerCase().contains(q);
@@ -196,6 +227,8 @@ public class SensorService {
                         displaySensor = "Humidity";
                     } else if (type.contains("light")) {
                         displaySensor = "Light";
+                    } else if (type.contains("co2")) {
+                        displaySensor = "CO2";
                     }
                     return new SensorFlatDto(
                             d.getId(),

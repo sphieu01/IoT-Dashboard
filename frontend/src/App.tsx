@@ -6,7 +6,7 @@ import HistoryPage from './pages/HistoryPage'
 import ProfilePage from './pages/ProfilePage'
 import LoginPage from './pages/LoginPage'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { SensorReading, DeviceHistory, DeviceStates } from './types'
+import { SensorReading, DeviceHistory, DeviceStates, ThresholdSettings, ExceedCounts } from './types'
 import { iotApiService } from './services/api'
 
 export default function App() {
@@ -25,13 +25,40 @@ export default function App() {
   const lastPacketTimeRef = useRef<number>(0)
 
   // Live Chart telemetry (Lấy từ CSDL và cập nhật Realtime qua REST API Polling)
-  const [chartData, setChartData] = useState<{ time: string; temp: number; humidity: number; light: number }[]>([])
+  const [chartData, setChartData] = useState<{ time: string; temp: number; humidity: number; light: number; co2?: number }[]>([])
 
   // Hardware states
   const [devices, setDevices] = useState<DeviceStates>({ light: false, fan: false })
   const [pendingDevices, setPendingDevices] = useState<Record<string, boolean>>({})
   const [sensorRows, setSensorRows] = useState<SensorReading[]>([])
   const [historyLogs, setHistoryLogs] = useState<DeviceHistory[]>([])
+
+  // 4 Ngưỡng người dùng cấu hình
+  const [thresholds, setThresholds] = useState<ThresholdSettings>(() => {
+    const saved = localStorage.getItem('sensor_thresholds')
+    if (saved) {
+      try {
+        return JSON.parse(saved)
+      } catch {}
+    }
+    return { temp: 35, humidity: 70, light: 2000, co2: 1000 }
+  })
+
+  // Đếm số lần vượt ngưỡng của 4 cảm biến
+  const [exceedCounts, setExceedCounts] = useState<ExceedCounts>({
+    temperature: 0,
+    humidity: 0,
+    light: 0,
+    co2: 0,
+  })
+
+  const handleUpdateThreshold = (key: keyof ThresholdSettings, val: number) => {
+    setThresholds((prev) => {
+      const next = { ...prev, [key]: val }
+      localStorage.setItem('sensor_thresholds', JSON.stringify(next))
+      return next
+    })
+  }
 
   const handleLoginSuccess = (newToken: string, userData: any) => {
     setToken(newToken)
@@ -50,8 +77,22 @@ export default function App() {
       handleLogout()
     }
     window.addEventListener('auth:unauthorized', handleUnauthorized)
-    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized)
+    window.addEventListener('iot-unauthorized', handleUnauthorized)
+    return () => {
+      window.removeEventListener('auth:unauthorized', handleUnauthorized)
+      window.removeEventListener('iot-unauthorized', handleUnauthorized)
+    }
   }, [])
+
+  // Đồng bộ số lần vượt ngưỡng khi thresholds thay đổi
+  useEffect(() => {
+    if (!token) return
+    iotApiService.getExceedCounts(thresholds).then((res) => {
+      if (res) {
+        setExceedCounts(res)
+      }
+    })
+  }, [thresholds, token])
 
   // Đồng bộ dữ liệu thực tế từ Spring Boot Backend & Polling Realtime
   useEffect(() => {
@@ -71,12 +112,12 @@ export default function App() {
     })
 
     // =========================================================================
-    // CƠ CHẾ HTTP POLLING THAY THẾ CHO WEBSOCKET (REST API THUẦN)
+    // CƠ CHẾ HTTP POLLING (REST API THUẦN)
     // Cứ mỗi 2 giây, Frontend chủ động gọi các API có sẵn để lấy số liệu mới nhất
     // =========================================================================
     const pollRealtimeData = async () => {
       try {
-        // A. Lấy 15 điểm đo mới nhất từ MySQL cho LiveChart & 3 Thẻ Metric
+        // A. Lấy 15 điểm đo mới nhất từ MySQL cho 4 Biểu đồ LiveChart & 4 Thẻ Metric
         const chartRes = await iotApiService.getLatestChartSensors()
         if (chartRes && chartRes.length > 0) {
           setIsConnected(true) // Đã kết nối thành công tới Spring Boot Server
@@ -105,6 +146,12 @@ export default function App() {
         if (devRes) {
           setDevices(devRes)
         }
+
+        // C. Cập nhật số lần vượt ngưỡng
+        const countsRes = await iotApiService.getExceedCounts(thresholds)
+        if (countsRes) {
+          setExceedCounts(countsRes)
+        }
       } catch (err) {
         console.warn('[Polling] Lỗi khi làm mới dữ liệu qua API:', err)
         setIsConnected(false)
@@ -117,7 +164,7 @@ export default function App() {
     return () => {
       clearInterval(pollingInterval)
     }
-  }, [token])
+  }, [token, thresholds])
 
   // Xử lý bật/tắt thiết bị: Gửi tới Spring Boot API và Polling trạng thái sau 0.5s
   const handleToggleDevice = async (key: string) => {
@@ -133,7 +180,6 @@ export default function App() {
     const serverLog = await iotApiService.toggleDevice(deviceName, targetAction)
 
     if (serverLog) {
-      // Đã ghi nhận log PENDING từ server thật
       setHistoryLogs((logs) => [serverLog, ...logs.filter((l) => l.id !== serverLog.id)])
 
       // 3. Polling kiểm tra xác nhận tối đa 5 giây (mỗi 500ms kiểm tra 1 lần)
@@ -150,7 +196,6 @@ export default function App() {
           }
           setPendingDevices((prev) => ({ ...prev, [key]: false }))
 
-          // Cập nhật lại lịch sử (nếu thành công -> SUCCESS, nếu quá 5s -> FAIL)
           const historyRes = await iotApiService.getDeviceHistoryLogsPaged({ page: 1, limit: 10 })
           if (historyRes && historyRes.data) {
             setHistoryLogs((prev) => {
@@ -185,6 +230,9 @@ export default function App() {
               onToggle={handleToggleDevice}
               isConnected={isConnected}
               isEspOnline={isEspOnline}
+              thresholds={thresholds}
+              onUpdateThreshold={handleUpdateThreshold}
+              exceedCounts={exceedCounts}
             />
           }
         />

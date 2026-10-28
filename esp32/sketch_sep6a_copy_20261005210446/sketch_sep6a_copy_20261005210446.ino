@@ -7,6 +7,7 @@
 #define DPIN 4        
 #define DTYPE DHT11   
 #define LDR_PIN 32    
+#define CO2_PIN 35    // Cảm biến khí CO2 / MQ-135 cắm ở chân 35 (ADC1)
 #define LED1_PIN 5    // Đèn 1 cắm ở D5
 #define LED2_PIN 18   // Đèn 2 cắm ở D18
 
@@ -194,13 +195,16 @@ void loop() {
     float hu = dht.readHumidity();
     // Đọc giá trị thô từ chân LDR (0 - 4095). Backend Spring Boot sẽ tự động đảo chiều (4095 - light)
     int lightRaw = analogRead(LDR_PIN);
+    int co2Raw = analogRead(CO2_PIN);
+    int co2Ppm = 400 + map(co2Raw, 0, 4095, 0, 1100);
 
     if (isnan(tc) || isnan(hu)) return;
 
     String payload = "{";
     payload += "\"temp\":" + String(tc) + ",";
     payload += "\"humid\":" + String(hu) + ",";
-    payload += "\"light\":" + String(lightRaw);
+    payload += "\"light\":" + String(lightRaw) + ",";
+    payload += "\"co2\":" + String(co2Ppm);
     payload += "}";
 
     client.publish("data/sensors", payload.c_str()); // Gửi gói tin lên topic data/sensors

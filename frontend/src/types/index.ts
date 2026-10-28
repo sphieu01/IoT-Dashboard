@@ -2,7 +2,7 @@ import { ReactNode } from 'react'
 
 export type PageTab = 'dashboard' | 'data-sensor' | 'history' | 'my-profile'
 
-export type SensorType = 'Light' | 'Humidity' | 'Temperature'
+export type SensorType = 'Light' | 'Humidity' | 'Temperature' | 'CO2'
 
 export interface SensorReading {
   id: number
@@ -51,4 +51,26 @@ export interface UserProfileInfo {
   className: string
   university: string
   role: string
+}
+
+export interface ChartPoint {
+  time: string
+  temp: number
+  humidity: number
+  light: number
+  co2?: number
+}
+
+export interface ThresholdSettings {
+  temp: number
+  humidity: number
+  light: number
+  co2: number
+}
+
+export interface ExceedCounts {
+  temperature: number
+  humidity: number
+  light: number
+  co2: number
 }

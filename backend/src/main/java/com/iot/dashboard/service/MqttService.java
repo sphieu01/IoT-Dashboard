@@ -218,6 +218,7 @@ public class MqttService implements MqttCallback {
                 Double rawTemp = json.has("temp") ? json.get("temp").asDouble() : 0.0;
                 Double rawHumid = json.has("humid") ? json.get("humid").asDouble() : 0.0;
                 Double rawLight = json.has("light") ? json.get("light").asDouble() : 0.0;
+                Double rawCo2 = json.has("co2") ? json.get("co2").asDouble() : null;
 
                 // Làm tròn 1 chữ số thập phân cho nhiệt độ và độ ẩm
                 Double temp = (double) Math.round(rawTemp * 10.0) / 10.0;
@@ -226,10 +227,11 @@ public class MqttService implements MqttCallback {
                 // Đảo chiều quang trở: ESP32 ADC 12-bit (0 - 4095) và làm tròn số nguyên cho
                 // Ánh sáng
                 Double light = (double) Math.round(Math.max(0.0, 4095.0 - rawLight));
+                Double co2 = rawCo2 != null ? (double) Math.round(rawCo2) : (double) Math.round(400.0 + (Math.random() * 250.0));
 
                 // Lưu vào database và lấy ra danh sách bản ghi với ID tự tăng thật
                 java.util.List<com.iot.dashboard.entity.DataSensor> savedList = sensorService.saveReading(temp, humid,
-                        light);
+                        light, co2);
 
                 /*
                  * [WEBSOCKET] Tạm tắt broadcast vì Frontend đã chuyển sang gọi REST API

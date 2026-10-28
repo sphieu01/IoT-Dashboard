@@ -5,14 +5,20 @@ public class LiveChartPointDto {
     private Double temp;
     private Double humidity;
     private Double light;
+    private Double co2;
 
     public LiveChartPointDto() {}
 
     public LiveChartPointDto(String time, Double temp, Double humidity, Double light) {
+        this(time, temp, humidity, light, 0.0);
+    }
+
+    public LiveChartPointDto(String time, Double temp, Double humidity, Double light, Double co2) {
         this.time = time;
         this.temp = temp;
         this.humidity = humidity;
         this.light = light;
+        this.co2 = co2;
     }
 
     public String getTime() {
@@ -45,5 +51,13 @@ public class LiveChartPointDto {
 
     public void setLight(Double light) {
         this.light = light;
+    }
+
+    public Double getCo2() {
+        return co2;
+    }
+
+    public void setCo2(Double co2) {
+        this.co2 = co2;
     }
 }

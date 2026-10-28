@@ -15,41 +15,43 @@ import org.springframework.stereotype.Component;
 // Kiểm tra xem trong DB đã có sẵn các cảm biến, thiết bị và tài khoản admin chưa, nếu chưa thì thêm vào.
 public class DataInitializer implements CommandLineRunner {
 
-        private static final Logger log = LoggerFactory.getLogger(DataInitializer.class);
+    private static final Logger log = LoggerFactory.getLogger(DataInitializer.class);
 
-        private final SensorRepository sensorRepository;
-        private final DeviceRepository deviceRepository;
-        private final UserRepository userRepository;
+    private final SensorRepository sensorRepository;
+    private final DeviceRepository deviceRepository;
+    private final UserRepository userRepository;
 
-        public DataInitializer(
-                        SensorRepository sensorRepository,
-                        DeviceRepository deviceRepository,
-                        UserRepository userRepository) {
-                this.sensorRepository = sensorRepository;
-                this.deviceRepository = deviceRepository;
-                this.userRepository = userRepository;
-        }
+    public DataInitializer(
+            SensorRepository sensorRepository,
+            DeviceRepository deviceRepository,
+            UserRepository userRepository) {
+        this.sensorRepository = sensorRepository;
+        this.deviceRepository = deviceRepository;
+        this.userRepository = userRepository;
+    }
 
-        @Override
-        public void run(String... args) {
-                // 1. Khởi tạo danh mục Cảm biến mặc định nếu chưa có (tbl_sensors)
-                sensorRepository.findByType("temperature")
-                                .orElseGet(() -> sensorRepository.save(new Sensor("DHT11", "temperature")));
-                sensorRepository.findByType("humidity")
-                                .orElseGet(() -> sensorRepository.save(new Sensor("DHT11", "humidity")));
-                sensorRepository.findByType("light")
-                                .orElseGet(() -> sensorRepository.save(new Sensor("LDR", "light")));
+    @Override
+    public void run(String... args) {
+        // 1. Khởi tạo danh mục 4 Cảm biến mặc định nếu chưa có (tbl_sensors)
+        sensorRepository.findByType("temperature")
+                .orElseGet(() -> sensorRepository.save(new Sensor("DHT11", "temperature")));
+        sensorRepository.findByType("humidity")
+                .orElseGet(() -> sensorRepository.save(new Sensor("DHT11", "humidity")));
+        sensorRepository.findByType("light")
+                .orElseGet(() -> sensorRepository.save(new Sensor("LDR", "light")));
+        sensorRepository.findByType("co2")
+                .orElseGet(() -> sensorRepository.save(new Sensor("MQ-135", "co2")));
 
-                // 2. Khởi tạo danh mục 2 Thiết bị mặc định nếu chưa có (tbl_devices)
-                deviceRepository.findByNameIgnoreCase("Light")
-                                .orElseGet(() -> deviceRepository.save(new Device("Light", "OFF")));
-                deviceRepository.findByNameIgnoreCase("Fan")
-                                .orElseGet(() -> deviceRepository.save(new Device("Fan", "OFF")));
+        // 2. Khởi tạo danh mục 2 Thiết bị mặc định nếu chưa có (tbl_devices)
+        deviceRepository.findByNameIgnoreCase("Light")
+                .orElseGet(() -> deviceRepository.save(new Device("Light", "OFF")));
+        deviceRepository.findByNameIgnoreCase("Fan")
+                .orElseGet(() -> deviceRepository.save(new Device("Fan", "OFF")));
 
-                // 3. Khởi tạo tài khoản Quản trị viên mặc định nếu chưa có (tbl_users)
-                userRepository.findByUsername("admin")
-                                .orElseGet(() -> userRepository.save(new User("admin", "123456", "Administrator", "ADMIN")));
+        // 3. Khởi tạo tài khoản Quản trị viên mặc định nếu chưa có (tbl_users)
+        userRepository.findByUsername("admin")
+                .orElseGet(() -> userRepository.save(new User("admin", "123456", "Administrator", "ADMIN")));
 
-                log.info(" [Initializer] Đã sẵn sàng danh mục cảm biến, thiết bị và tài khoản admin (admin / 123456) trong CSDL.");
-        }
+        log.info(" [Initializer] Đã sẵn sàng danh mục 4 cảm biến, 2 thiết bị và tài khoản admin (admin / 123456) trong CSDL.");
+    }
 }

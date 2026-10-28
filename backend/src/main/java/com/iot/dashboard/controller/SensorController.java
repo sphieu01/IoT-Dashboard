@@ -40,4 +40,15 @@ public class SensorController {
     ) {
         return ResponseEntity.ok(sensorService.getLatestChartPoints(limit));
     }
+
+    // 3. Đếm số lần vượt ngưỡng của 4 cảm biến từ MySQL
+    @GetMapping("/exceed-counts")
+    public ResponseEntity<Map<String, Long>> getExceedCounts(
+            @RequestParam(required = false) Double temp,
+            @RequestParam(required = false) Double humidity,
+            @RequestParam(required = false) Double light,
+            @RequestParam(required = false) Double co2
+    ) {
+        return ResponseEntity.ok(sensorService.getExceedanceCounts(temp, humidity, light, co2));
+    }
 }

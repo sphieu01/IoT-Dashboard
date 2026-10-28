@@ -29,6 +29,15 @@ export interface PagedResponse<T> {
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 const WS_BASE_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:5000/ws'
 
+function checkAuthStatus(res: Response): void {
+  if (res.status === 401) {
+    localStorage.removeItem('iot_token')
+    localStorage.removeItem('iot_user')
+    window.dispatchEvent(new Event('auth:unauthorized'))
+    window.dispatchEvent(new Event('iot-unauthorized'))
+  }
+}
+
 // Helper tạo header xác thực Bearer Token
 function getAuthHeaders(): HeadersInit {
   const token = localStorage.getItem('iot_token')
@@ -110,6 +119,7 @@ export const iotApiService = {
       const res = await fetch(`${API_BASE_URL}/devices/status`, {
         headers: getAuthHeaders(),
       })
+      checkAuthStatus(res)
       if (!res.ok) throw new Error('Failed to fetch devices status')
       return await res.json()
     } catch (e) {
@@ -119,15 +129,42 @@ export const iotApiService = {
   },
 
   // 2. Lấy 15 điểm đo mới nhất cho LiveChart
-  async getLatestChartSensors(): Promise<{ time: string; temp: number; humidity: number; light: number }[] | null> {
+  async getLatestChartSensors(): Promise<{ time: string; temp: number; humidity: number; light: number; co2?: number }[] | null> {
     try {
       const res = await fetch(`${API_BASE_URL}/sensors/latest?limit=15`, {
         headers: getAuthHeaders(),
       })
+      checkAuthStatus(res)
       if (!res.ok) throw new Error('Failed to fetch chart sensors')
       return await res.json()
     } catch (e) {
       console.warn('[API] Khong the lay du lieu bieu do tu backend:', e)
+      return null
+    }
+  },
+
+  // 2b. Đếm số lần vượt ngưỡng từ CSDL MySQL
+  async getExceedCounts(params: {
+    temp?: number
+    humidity?: number
+    light?: number
+    co2?: number
+  }): Promise<{ temperature: number; humidity: number; light: number; co2: number } | null> {
+    try {
+      const sp = new URLSearchParams()
+      if (params.temp !== undefined) sp.set('temp', String(params.temp))
+      if (params.humidity !== undefined) sp.set('humidity', String(params.humidity))
+      if (params.light !== undefined) sp.set('light', String(params.light))
+      if (params.co2 !== undefined) sp.set('co2', String(params.co2))
+
+      const res = await fetch(`${API_BASE_URL}/sensors/exceed-counts?${sp.toString()}`, {
+        headers: getAuthHeaders(),
+      })
+      checkAuthStatus(res)
+      if (!res.ok) throw new Error('Failed to fetch exceed counts')
+      return await res.json()
+    } catch (e) {
+      console.warn('[API] Khong the lay so lan vuot nguong:', e)
       return null
     }
   },
