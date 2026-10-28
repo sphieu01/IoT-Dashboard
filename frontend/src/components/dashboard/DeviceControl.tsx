@@ -31,7 +31,7 @@ export default function DeviceControl({
     { key: 'temp', countKey: 'temperature', label: 'Nhiệt độ', icon: '🌡️', unit: '°C', step: 1 },
     { key: 'humidity', countKey: 'humidity', label: 'Độ ẩm', icon: '💧', unit: '%', step: 1 },
     { key: 'light', countKey: 'light', label: 'Ánh sáng', icon: '☀️', unit: 'Lux', step: 50 },
-    { key: 'co2', countKey: 'co2', label: 'CO2', icon: '🫧', unit: 'ppm', step: 50 },
+    { key: 'co2', countKey: 'co2', label: 'CO2', icon: '☁️', unit: 'ppm', step: 50 },
   ]
 
   return (

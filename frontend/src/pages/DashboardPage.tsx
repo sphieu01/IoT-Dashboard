@@ -66,7 +66,7 @@ export default function DashboardPage({
           label="CO2 Gas"
           value={co2Value}
           unit="ppm"
-          icon="🫧"
+          icon="☁️"
           bg="bg-gradient-to-br from-emerald-500 to-teal-600"
         />
       </div>

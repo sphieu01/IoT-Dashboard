@@ -249,7 +249,7 @@ export default function LiveChart({
         {/* Biểu đồ 4: CO2 */}
         <SingleSensorChart
           title="CO2"
-          icon="🫧"
+          icon="☁️"
           dataKey="co2"
           data={chartPoints}
           color="#10b981"
