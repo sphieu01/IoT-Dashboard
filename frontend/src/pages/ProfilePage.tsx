@@ -12,8 +12,8 @@ const PROFILE_LINKS: ProfileLinkItem[] = [
     href: 'https://www.figma.com/design/nMxw4QuOb5eQGHu4kk2w5G/Figma-IoT?t=K46PkW3FirboTfOz-1',
   },
   {
-    label: 'Report PDF',
-    href: 'https://zvhmx-my.sharepoint.com/:b:/g/personal/onedrivecuahieu1_zvhmx_onmicrosoft_com/IQDGAi8s0tK2QLuqCOdVGrG1AUuUd6ew3BgMUlASoC7vgv0?e=CXZTJT',
+    label: 'Report',
+    href: 'https://docs.google.com/document/d/1RkrAlIR58hBEzB6AUWhBUp_gEW_FFzc-/edit?usp=sharing&ouid=118326835226913149581&rtpof=true&sd=true',
   },
   {
     label: 'Postman',
