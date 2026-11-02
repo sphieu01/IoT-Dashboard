@@ -13,7 +13,7 @@ const PROFILE_LINKS: ProfileLinkItem[] = [
   },
   {
     label: 'Report PDF',
-    href: 'https://zvhmx-my.sharepoint.com/:b:/g/personal/onedrivecuahieu1_zvhmx_onmicrosoft_com/IQDGAi8s0tK2QLuqCOdVGrG1AUuUd6ew3BgMUlASoC7vgv0?e=CXZTJT',
+    href: 'https://zvhmx-my.sharepoint.com/:b:/g/personal/onedrivecuahieu1_zvhmx_onmicrosoft_com/IQBjGAfM1xncRqNzc5HvO5OdAa6LdTkPH5ntJ1wDoGJ3PXQ?e=affmNV',
   },
   {
     label: 'Postman',
