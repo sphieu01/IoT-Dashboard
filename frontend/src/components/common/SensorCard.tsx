@@ -13,11 +13,11 @@ export default function SensorCard({ label, value, unit, icon, bg }: SensorCardP
 
   return (
     <div
-      className={`${bg} rounded-2xl px-6 py-4 flex items-center gap-5 flex-1 min-w-0 shadow-lg transform transition-transform hover:-translate-y-0.5`}
+      className={`${bg} rounded-2xl px-5 py-3 flex items-center gap-4 flex-1 min-w-0 shadow-lg transform transition-transform hover:-translate-y-0.5`}
     >
       <span className="text-4xl opacity-90 select-none">{icon}</span>
       <div>
-        <div className="text-sm font-medium text-white/80 mb-1">{label}</div>
+        <div className="text-sm font-medium text-white/80 mb-0.5">{label}</div>
         <div className="text-3xl font-bold text-white font-mono tracking-tight flex items-baseline gap-1.5">
           {isDash ? (
             <span className="text-3xl text-white/60">-</span>

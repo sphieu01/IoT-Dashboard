@@ -35,7 +35,7 @@ export default function DeviceControl({
   ]
 
   return (
-    <div className="w-full lg:w-80 flex flex-col gap-3">
+    <div className="w-full lg:w-80 flex flex-col gap-2.5">
       {/* 2 Thiết bị: Light và Fan (Bố cục ngang: Icon - Tên - Toggle) */}
       {DEVICES_CONFIG.map((d) => {
         const isDeviceOn = devices[d.key]
@@ -51,7 +51,7 @@ export default function DeviceControl({
         return (
           <div
             key={d.key}
-            className={`bg-[#0f1720] border rounded-xl p-3.5 flex items-center justify-between transition-all duration-300 shadow-md ${borderColor}`}
+            className={`bg-[#0f1720] border rounded-xl p-3 flex items-center justify-between transition-all duration-300 shadow-md ${borderColor}`}
           >
             {/* Trái: Icon & Tên thiết bị theo hàng ngang */}
             <div className="flex items-center gap-3">
@@ -95,8 +95,8 @@ export default function DeviceControl({
         )
       })}
 
-      {/* Thẻ thứ 3: Cài đặt 4 ngưỡng & Đếm số lần vượt ngưỡng (Tối giản) */}
-      <div className="bg-[#0f1720] border border-[#1e2d42] rounded-xl p-3.5 shadow-md flex flex-col gap-2.5">
+      {/* Thẻ thứ 3: Cài đặt 4 ngưỡng & Đếm số lần vượt ngưỡng (Tối giản, 4 dấu > thẳng hàng tuyệt đối) */}
+      <div className="bg-[#0f1720] border border-[#1e2d42] rounded-xl p-3 shadow-md flex flex-col gap-2">
         <div className="flex items-center justify-between pb-2 border-b border-[#1e2d42]">
           <div className="text-xs font-semibold text-[#94a3b8] uppercase tracking-wider flex items-center gap-1.5">
             <span>⚙️ Cài đặt 4 Ngưỡng</span>
@@ -112,37 +112,40 @@ export default function DeviceControl({
             return (
               <div
                 key={item.key}
-                className="flex items-center justify-between p-2 bg-[#0a0f18] border border-[#1a2636] rounded-lg text-xs"
+                className="flex items-center p-2 bg-[#0a0f18] border border-[#1a2636] rounded-lg text-xs gap-1.5"
               >
-                {/* Tên & Icon */}
-                <div className="flex items-center gap-1.5 w-24 shrink-0">
-                  <span className="text-sm">{item.icon}</span>
-                  <span className="text-[#cbd5e1] font-medium">{item.label}</span>
+                {/* Cột 1: Icon & Tên cảm biến (Độ rộng cố định 82px) */}
+                <div className="flex items-center gap-1.5 w-[82px] shrink-0">
+                  <span className="text-sm select-none">{item.icon}</span>
+                  <span className="text-[#cbd5e1] font-medium text-xs truncate">{item.label}</span>
                 </div>
 
-                {/* Input đặt ngưỡng */}
-                <div className="flex items-center gap-1">
-                  <span className="text-[#64748b] text-[11px]">&gt;</span>
-                  <input
-                    type="number"
-                    step={item.step}
-                    value={thresholds[item.key]}
-                    onChange={(e) => onUpdateThreshold(item.key, Number(e.target.value) || 0)}
-                    className="w-16 px-1.5 py-0.5 bg-[#141e2c] border border-[#26374d] rounded text-white text-right font-mono text-xs focus:outline-none focus:border-[#00d4a8]"
-                  />
-                  <span className="text-[10px] font-mono text-[#94a3b8] w-7 shrink-0">{item.unit}</span>
-                </div>
+                {/* Cột 2: Dấu > (Độ rộng cố định, CĂN THẲNG HÀNG 100%) */}
+                <span className="text-[#64748b] text-xs font-mono font-bold w-3 text-center shrink-0">&gt;</span>
 
-                {/* Badge đếm số lần vượt */}
+                {/* Cột 3: Input nhập ngưỡng */}
+                <input
+                  type="number"
+                  step={item.step}
+                  value={thresholds[item.key]}
+                  onChange={(e) => onUpdateThreshold(item.key, Number(e.target.value) || 0)}
+                  className="w-14 px-1 py-0.5 bg-[#141e2c] border border-[#26374d] rounded text-white text-right font-mono text-xs focus:outline-none focus:border-[#00d4a8] shrink-0"
+                />
+
+                {/* Cột 4: Đơn vị (Độ rộng cố định 28px) */}
+                <span className="text-[10px] font-mono text-[#94a3b8] w-7 shrink-0 pl-1">{item.unit}</span>
+
+                {/* Cột 5: Badge số lần vượt (Đẩy về sát mép phải ml-auto) */}
                 <div
-                  className={`px-2 py-0.5 rounded font-mono text-[11px] font-semibold text-center min-w-14 ${
+                  className={`ml-auto px-2 py-0.5 rounded font-mono text-center shrink-0 ${
                     isExceeded
                       ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40'
                       : 'bg-[#141e2c] text-[#64748b] border border-[#1e2d42]'
                   }`}
                   title={`Số lần ${item.label} vượt ngưỡng`}
                 >
-                  {count} lần
+                  <div className="text-[11px] font-bold leading-tight">{count}</div>
+                  <div className="text-[9px] opacity-75 leading-tight">lần</div>
                 </div>
               </div>
             )

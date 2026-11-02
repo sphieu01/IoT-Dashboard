@@ -38,7 +38,7 @@ export default function DashboardPage({
   const co2Value = isOnline && latest ? String(Math.round(Number(latest.co2 || 400))) : '-'
 
   return (
-    <div className="flex-1 flex flex-col gap-4 min-h-0">
+    <div className="flex-1 flex flex-col gap-3 min-h-0">
       {/* 4 Sensor Metric Cards: Nhiệt độ, Độ ẩm, Ánh sáng, CO2 */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <SensorCard
@@ -72,7 +72,7 @@ export default function DashboardPage({
       </div>
 
       {/* Main Section: 4 Biểu đồ riêng biệt 2x2 (bên trái) + Bảng điều khiển thiết bị & cài ngưỡng (bên phải) */}
-      <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
+      <div className="flex flex-col lg:flex-row gap-3 flex-1 min-h-0">
         <LiveChart
           data={chartData}
           isConnected={isConnected}

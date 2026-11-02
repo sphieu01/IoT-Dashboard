@@ -49,14 +49,31 @@ function SingleSensorChart({
   const latestVal = data.length > 0 ? data[data.length - 1][dataKey] : null
   const isExceeded = latestVal !== null && threshold !== undefined && Number(latestVal) > threshold
 
+  // Ưu tiên hiển thị mốc thời gian ngoài cùng bên phải (mới nhất), đếm lùi sang trái mỗi 3 điểm (interval={3})
+  const customTicks = React.useMemo(() => {
+    if (!data || data.length === 0) return []
+    const times = data.map((d) => d.time)
+    if (times.length <= 4) return times
+
+    const lastIdx = times.length - 1
+    const result: string[] = []
+    const step = 3 // interval={3}
+    for (let i = lastIdx; i >= 0; i -= step) {
+      result.unshift(times[i])
+    }
+    return result
+  }, [data])
+
   return (
-    <div className={`bg-[#0f1720] border rounded-xl p-3 flex flex-col shadow-sm transition-all duration-300 ${
-      isExceeded ? 'border-rose-500/50 shadow-rose-950/20' : 'border-[#1e2d42]'
-    }`}>
+    <div
+      className={`bg-[#0f1720] border rounded-xl p-3 flex flex-col shadow-sm transition-all duration-300 ${
+        isExceeded ? 'border-rose-500/50 shadow-rose-950/20' : 'border-[#1e2d42]'
+      }`}
+    >
       {/* Header nhỏ gọn */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5">
-          <span className="text-base">{icon}</span>
+          <span className="text-base select-none">{icon}</span>
           <span className="text-xs font-semibold text-[#cbd5e1]">{title}</span>
           {latestVal !== null && (
             <span className="text-xs font-mono font-bold ml-1" style={{ color }}>
@@ -73,7 +90,9 @@ function SingleSensorChart({
           )}
           <span
             className={`px-1.5 py-0.2 rounded text-[10px] font-semibold ${
-              exceedCount > 0 ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : 'bg-[#182333] text-[#64748b]'
+              exceedCount > 0
+                ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                : 'bg-[#182333] text-[#64748b]'
             }`}
           >
             Vượt: {exceedCount}
@@ -81,15 +100,15 @@ function SingleSensorChart({
         </div>
       </div>
 
-      {/* Biểu đồ */}
-      <div className="w-full h-36">
+      {/* Biểu đồ - Chỉ giảm 10px để vừa khít màn hình, không tạo khoảng trống thừa */}
+      <div className="w-full h-[134px]">
         {data.length === 0 ? (
           <div className="w-full h-full flex items-center justify-center text-xs text-[#64748b] font-mono">
             Chưa có dữ liệu
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data} margin={{ top: 8, right: 10, left: -20, bottom: 0 }}>
+            <AreaChart data={data} margin={{ top: 8, right: 24, left: -10, bottom: 0 }}>
               <defs>
                 <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor={color} stopOpacity={0.4} />
@@ -99,8 +118,9 @@ function SingleSensorChart({
               <CartesianGrid strokeDasharray="3 3" stroke="#1e2d42" opacity={0.6} />
               <XAxis
                 dataKey="time"
+                ticks={customTicks}
+                interval={0}
                 tick={{ fill: '#64748b', fontSize: 9, fontFamily: 'JetBrains Mono' }}
-                interval="preserveEnd"
               />
               <YAxis
                 domain={domain}
@@ -200,7 +220,7 @@ export default function LiveChart({
       </div>
 
       {/* Lưới 4 biểu đồ 2x2: [][] / [][] */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 flex-1">
         {/* Biểu đồ 1: Nhiệt độ */}
         <SingleSensorChart
           title="Nhiệt độ"
