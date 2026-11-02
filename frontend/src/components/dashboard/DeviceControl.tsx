@@ -36,7 +36,7 @@ export default function DeviceControl({
 
   return (
     <div className="w-full lg:w-80 flex flex-col gap-2.5">
-      {/* 2 Thiết bị: Light và Fan (Bố cục ngang: Icon - Tên - Toggle) */}
+      {/* 2 Thiết bị: Light và Fan (Bố cục ngang: Icon - Tên - Toggle, kích thước cố định không giật khi pending) */}
       {DEVICES_CONFIG.map((d) => {
         const isDeviceOn = devices[d.key]
         const isPending = pendingDevices[d.key]
@@ -51,12 +51,12 @@ export default function DeviceControl({
         return (
           <div
             key={d.key}
-            className={`bg-[#0f1720] border rounded-xl p-3 flex items-center justify-between transition-all duration-300 shadow-md ${borderColor}`}
+            className={`bg-[#0f1720] border rounded-xl p-3 min-h-[64px] flex items-center justify-between transition-colors duration-200 shadow-md ${borderColor}`}
           >
             {/* Trái: Icon & Tên thiết bị theo hàng ngang */}
             <div className="flex items-center gap-3">
               <div
-                className={`text-2xl select-none transition-all duration-300 ${
+                className={`w-8 h-8 flex items-center justify-center text-2xl select-none transition-transform duration-200 shrink-0 ${
                   isPending
                     ? 'animate-pulse'
                     : isDeviceOn
@@ -66,21 +66,23 @@ export default function DeviceControl({
               >
                 {d.icon}
               </div>
-              <div>
-                <div className="text-sm font-semibold text-[#e2e8f0]">{d.label}</div>
-                {isPending ? (
-                  <div className="text-[10px] font-mono font-bold text-amber-400 flex items-center gap-1">
-                    <svg className="animate-spin h-2.5 w-2.5" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    <span>PENDING...</span>
-                  </div>
-                ) : (
-                  <span className={`text-[10px] font-mono ${isDeviceOn ? 'text-[#00d4a8]' : 'text-[#64748b]'}`}>
-                    {isDeviceOn ? 'HOẠT ĐỘNG' : 'ĐANG TẮT'}
-                  </span>
-                )}
+              <div className="flex flex-col justify-center">
+                <div className="text-sm font-semibold text-[#e2e8f0] leading-tight">{d.label}</div>
+                <div className="h-4 flex items-center mt-0.5">
+                  {isPending ? (
+                    <div className="text-[10px] font-mono font-bold text-amber-400 flex items-center gap-1 leading-none">
+                      <svg className="animate-spin h-2.5 w-2.5 shrink-0" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      <span>PENDING...</span>
+                    </div>
+                  ) : (
+                    <span className={`text-[10px] font-mono leading-none ${isDeviceOn ? 'text-[#00d4a8]' : 'text-[#64748b]'}`}>
+                      {isDeviceOn ? 'HOẠT ĐỘNG' : 'ĐANG TẮT'}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 

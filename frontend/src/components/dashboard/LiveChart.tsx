@@ -23,7 +23,7 @@ interface SingleSensorChartProps {
   title: string
   icon: string
   dataKey: 'temp' | 'humidity' | 'light' | 'co2'
-  data: { time: string; [key: string]: any }[]
+  data: { time: string;[key: string]: any }[]
   color: string
   gradientId: string
   unit: string
@@ -66,9 +66,8 @@ function SingleSensorChart({
 
   return (
     <div
-      className={`bg-[#0f1720] border rounded-xl p-3 flex flex-col shadow-sm transition-all duration-300 ${
-        isExceeded ? 'border-rose-500/50 shadow-rose-950/20' : 'border-[#1e2d42]'
-      }`}
+      className={`bg-[#0f1720] border rounded-xl p-3 flex flex-col shadow-sm transition-all duration-300 ${isExceeded ? 'border-rose-500/50 shadow-rose-950/20' : 'border-[#1e2d42]'
+        }`}
     >
       {/* Header nhỏ gọn */}
       <div className="flex items-center justify-between mb-2">
@@ -89,11 +88,10 @@ function SingleSensorChart({
             </span>
           )}
           <span
-            className={`px-1.5 py-0.2 rounded text-[10px] font-semibold ${
-              exceedCount > 0
-                ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                : 'bg-[#182333] text-[#64748b]'
-            }`}
+            className={`px-1.5 py-0.2 rounded text-[10px] font-semibold ${exceedCount > 0
+              ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+              : 'bg-[#182333] text-[#64748b]'
+              }`}
           >
             Vượt: {exceedCount}
           </span>
