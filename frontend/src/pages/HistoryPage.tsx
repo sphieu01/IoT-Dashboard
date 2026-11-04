@@ -20,6 +20,13 @@ export default function HistoryPage({ logs = [] }: HistoryPageProps) {
   const [items, setItems] = useState<DeviceHistory[]>([])
   const [total, setTotal] = useState<number>(0)
   const [loading, setLoading] = useState<boolean>(true)
+  const [copiedId, setCopiedId] = useState<number | string | null>(null)
+
+  const handleCopy = (timeStr: string, id: number | string) => {
+    navigator.clipboard.writeText(timeStr)
+    setCopiedId(id)
+    setTimeout(() => setCopiedId(null), 1500)
+  }
 
   // 100% Server-side Query & Pagination từ Backend (tối đa 1000 kết quả)
   useEffect(() => {
@@ -222,7 +229,18 @@ export default function HistoryPage({ logs = [] }: HistoryPageProps) {
                     <td className={tdCls}>
                       <OnOffBadge value={l.status} />
                     </td>
-                    <td className={`${tdCls} text-[#00d4a8]`}>{l.fullTime}</td>
+                    <td className={`${tdCls} text-[#00d4a8]`}>
+                      <div className="flex items-center gap-2">
+                        <span>{l.fullTime}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(l.fullTime, l.id)}
+                          className="w-12 text-center shrink-0 text-[11px] py-0.5 rounded bg-[#1e2d42] hover:bg-[#2a3c55] text-[#94a3b8] hover:text-[#00d4a8] transition-colors cursor-pointer select-none"
+                        >
+                          {copiedId === l.id ? 'Copied' : 'Copy'}
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 )
               })}

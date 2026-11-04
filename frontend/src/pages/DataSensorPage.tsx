@@ -27,6 +27,13 @@ export default function DataSensorPage({ rows = [] }: DataSensorPageProps) {
   const [items, setItems] = useState<SensorReading[]>([])
   const [total, setTotal] = useState<number>(0)
   const [loading, setLoading] = useState<boolean>(true)
+  const [copiedId, setCopiedId] = useState<number | null>(null)
+
+  const handleCopy = (timeStr: string, id: number) => {
+    navigator.clipboard.writeText(timeStr)
+    setCopiedId(id)
+    setTimeout(() => setCopiedId(null), 1500)
+  }
 
   const handleSearch = () => {
     setCommittedSearchType(searchType)
@@ -163,7 +170,18 @@ export default function DataSensorPage({ rows = [] }: DataSensorPageProps) {
                     <td className={`${tdCls} font-semibold`} style={{ color: meta.color }}>
                       {f.value} {meta.unit}
                     </td>
-                    <td className={`${tdCls} text-[#00d4a8]`}>{f.fullTime}</td>
+                    <td className={`${tdCls} text-[#00d4a8]`}>
+                      <div className="flex items-center gap-2">
+                        <span>{f.fullTime}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(f.fullTime, f.id)}
+                          className="w-12 text-center shrink-0 text-[11px] py-0.5 rounded bg-[#1e2d42] hover:bg-[#2a3c55] text-[#94a3b8] hover:text-[#00d4a8] transition-colors cursor-pointer select-none"
+                        >
+                          {copiedId === f.id ? 'Copied' : 'Copy'}
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 )
               })}

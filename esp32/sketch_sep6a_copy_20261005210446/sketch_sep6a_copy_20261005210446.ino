@@ -130,8 +130,8 @@ void setup() {
   digitalWrite(LED2_PIN, LOW);
   
   // Đăng ký cả 2 mạng Wi-Fi vào danh sách tự động tìm kiếm (WiFiMulti)
-  wifiMulti.addAP(WIFI_1_SSID, WIFI_1_PASS);
-  // wifiMulti.addAP(WIFI_2_SSID, WIFI_2_PASS);
+  wifiMulti.addAP(WIFI_1_SSID, WIFI_1_PASS); // hotspost
+  // wifiMulti.addAP(WIFI_2_SSID, WIFI_2_PASS); // wifi
 
   Serial.println("\nĐang quét và kết nối Wi-Fi (Hotspot hoặc WiFi nhà)...");
   while (wifiMulti.run() != WL_CONNECTED) {
