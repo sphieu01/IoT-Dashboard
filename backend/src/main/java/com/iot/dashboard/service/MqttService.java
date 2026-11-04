@@ -143,6 +143,7 @@ public class MqttService implements MqttCallback {
     }
 
     // Gửi lệnh "status_check" để ESP32 báo trạng thái các thiết bị về server
+    // tránh hiện tượng frontend 1 đằng HW 1 nẻo
     public void requestDeviceStatusCheck() {
         if (client != null && client.isConnected()) {
             try {
@@ -227,7 +228,9 @@ public class MqttService implements MqttCallback {
                 // Đảo chiều quang trở: ESP32 ADC 12-bit (0 - 4095) và làm tròn số nguyên cho
                 // Ánh sáng
                 Double light = (double) Math.round(Math.max(0.0, 4095.0 - rawLight));
-                Double co2 = rawCo2 != null ? (double) Math.round(rawCo2) : (double) Math.round(400.0 + (Math.random() * 250.0));
+                // nếu null thì cũng random ở đây
+                Double co2 = rawCo2 != null ? (double) Math.round(rawCo2)
+                        : (double) Math.round(400.0 + (Math.random() * 250.0));
 
                 // Lưu vào database và lấy ra danh sách bản ghi với ID tự tăng thật
                 java.util.List<com.iot.dashboard.entity.DataSensor> savedList = sensorService.saveReading(temp, humid,

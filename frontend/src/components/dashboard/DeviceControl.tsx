@@ -28,11 +28,11 @@ export default function DeviceControl({
     unit: string
     step: number
   }[] = [
-    { key: 'temp', countKey: 'temperature', label: 'Nhiệt độ', icon: '🌡️', unit: '°C', step: 1 },
-    { key: 'humidity', countKey: 'humidity', label: 'Độ ẩm', icon: '💧', unit: '%', step: 1 },
-    { key: 'light', countKey: 'light', label: 'Ánh sáng', icon: '☀️', unit: 'Lux', step: 50 },
-    { key: 'co2', countKey: 'co2', label: 'CO2', icon: '☁️', unit: 'ppm', step: 50 },
-  ]
+      { key: 'temp', countKey: 'temperature', label: 'Nhiệt độ', icon: '🌡️', unit: '°C', step: 1 },
+      { key: 'humidity', countKey: 'humidity', label: 'Độ ẩm', icon: '💧', unit: '%', step: 1 },
+      { key: 'light', countKey: 'light', label: 'Ánh sáng', icon: '☀️', unit: 'Lux', step: 50 },
+      { key: 'co2', countKey: 'co2', label: 'CO2', icon: '☁️', unit: 'ppm', step: 50 },
+    ]
 
   return (
     <div className="w-full lg:w-80 flex flex-col gap-2.5">
@@ -51,18 +51,17 @@ export default function DeviceControl({
         return (
           <div
             key={d.key}
-            className={`bg-[#0f1720] border rounded-xl p-3 min-h-[64px] flex items-center justify-between transition-colors duration-200 shadow-md ${borderColor}`}
+            className={`bg-[#0f1720] border rounded-xl p-3 min-h-[72px] flex items-center justify-between transition-colors duration-200 shadow-md ${borderColor}`}
           >
             {/* Trái: Icon & Tên thiết bị theo hàng ngang */}
             <div className="flex items-center gap-3">
               <div
-                className={`w-8 h-8 flex items-center justify-center text-2xl select-none transition-transform duration-200 shrink-0 ${
-                  isPending
-                    ? 'animate-pulse'
-                    : isDeviceOn
+                className={`w-8 h-8 flex items-center justify-center text-2xl select-none transition-transform duration-200 shrink-0 ${isPending
+                  ? 'animate-pulse'
+                  : isDeviceOn
                     ? 'scale-110'
                     : 'opacity-40 grayscale'
-                }`}
+                  }`}
               >
                 {d.icon}
               </div>
@@ -139,11 +138,10 @@ export default function DeviceControl({
 
                 {/* Cột 5: Badge số lần vượt (Đẩy về sát mép phải ml-auto) */}
                 <div
-                  className={`ml-auto px-2 py-0.5 rounded font-mono text-center shrink-0 ${
-                    isExceeded
-                      ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40'
-                      : 'bg-[#141e2c] text-[#64748b] border border-[#1e2d42]'
-                  }`}
+                  className={`ml-auto px-2 py-0.5 rounded font-mono text-center shrink-0 ${isExceeded
+                    ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40'
+                    : 'bg-[#141e2c] text-[#64748b] border border-[#1e2d42]'
+                    }`}
                   title={`Số lần ${item.label} vượt ngưỡng`}
                 >
                   <div className="text-[11px] font-bold leading-tight">{count}</div>
